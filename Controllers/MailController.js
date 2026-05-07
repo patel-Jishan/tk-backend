@@ -21,7 +21,7 @@ async function sendBookingMail({ name, email, bookingId, events, estimate }) {
 
         // ================= USER MAIL =================
         await transporter.sendMail({
-            from: `Pankaj Photography <${process.env.EMAIL_USER}>`,
+            from: `TK MOMENTS CAPTURE <${process.env.EMAIL_USER}>`,
             to: email,
             subject: "🎉 Booking Confirmed",
             html: `
@@ -48,7 +48,7 @@ async function sendBookingMail({ name, email, bookingId, events, estimate }) {
 
                     <hr/>
                     <p style="text-align:center;color:#888">
-                        📸 Pankaj Photography
+                        📸 TK MOMENTS CAPTURE
                     </p>
                 </div>
             </div>
