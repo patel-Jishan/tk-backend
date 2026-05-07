@@ -6,10 +6,13 @@ const {
     GetSingleBooking,
     UpdateStatus,
     GetPhotographers,
-    GetAvailablePhotographers
+    GetAvailablePhotographers,
+    AdminLogin
 } = require('../Controllers/AdminController');
 
 let router = express.Router();
+
+router.post("/login", AdminLogin);
 
 router.get("/dashboard", Auth("admin"), Dashboard);
 

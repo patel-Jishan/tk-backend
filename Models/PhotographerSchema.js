@@ -20,8 +20,6 @@ const photographerSchema = new mongoose.Schema({
       ]
     },
 
-    pricePerDay: Number,
-
     bookedDates: [String], // ["2026-05-10"]
 
     isActive: {

@@ -1,6 +1,8 @@
 const Booking = require("../Models/BookingSchema");
 const Service = require("../Models/ServiceSchema");
 
+const { sendBookingMail } = require("./MailController");
+
 async function CreateBooking(req, res) {
     try {
         let { customer, events, addons } = req.body;
@@ -35,15 +37,24 @@ async function CreateBooking(req, res) {
             }
         }
 
-        let booking = await Booking.create({
-            bookingId: "BK" + Date.now(),
-            customer,
-            events,
-            addons,
-            estimate
-        });
+       let booking = await Booking.create({
+    bookingId: "BK" + Date.now(),
+    customer,
+    events,
+    addons,
+    estimate
+});
 
-        res.json({ success: true, booking });
+// 🔥 MAIL CALL (yahi add karna hai)
+await sendBookingMail({
+    name: customer.name,
+    email: customer.email,
+    bookingId: booking.bookingId,
+    events: booking.events,
+    estimate: booking.estimate
+});
+
+res.json({ success: true, booking });
 
     } catch (error) {
         res.json({ success: false, message: error.message });
@@ -110,8 +121,53 @@ async function AssignPhotographer(req, res) {
 
 }
 
+
+async function GetEstimate(req, res) {
+    try {
+        let { events, addons } = req.body;
+
+        let total = 0;
+
+        // 🔥 Event Services
+        for (let event of events) {
+            for (let item of event.services) {
+                let service = await Service.findById(item.serviceId);
+                if (!service) continue;
+
+                if (service.priceType === "per_day") {
+                    total += service.price;
+                } else if (service.priceType === "per_unit") {
+                    total += service.price * item.quantity;
+                }
+            }
+        }
+
+        // 🔥 Addons
+        if (addons?.length) {
+            for (let item of addons) {
+                let service = await Service.findById(item.serviceId);
+                if (!service) continue;
+
+                if (service.priceType === "fixed") {
+                    total += service.price;
+                } else if (service.priceType === "per_unit") {
+                    total += service.price * item.quantity;
+                }
+            }
+        }
+
+        res.json({ success: true, estimate: total });
+
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+}
+
+
+
 module.exports = {
     CreateBooking,
     GetAllBookings,
-    AssignPhotographer
+    AssignPhotographer,
+    GetEstimate
 };
