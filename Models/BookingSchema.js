@@ -1,4 +1,3 @@
-
 const mongoose = require("mongoose");
 
 const eventSchema = new mongoose.Schema({
@@ -54,6 +53,12 @@ const bookingSchema = new mongoose.Schema(
     assigned: [assignedSchema],
 
     estimate: Number,
+
+    type: {
+      type: String,
+      enum: ["enquiry", "booking"],
+      default: "enquiry"
+    },
 
     status: {
       type: String,

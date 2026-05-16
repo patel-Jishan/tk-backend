@@ -4,9 +4,10 @@ const Photographer = require("../Models/PhotographerSchema");
 
 const { sendBookingMail } = require("./MailController");
 
+
 async function CreateBooking(req, res) {
     try {
-        let { customer, events, addons } = req.body;
+        let { customer, events, addons, isConfirmed } = req.body;
 
         let estimate = 0;
 
@@ -38,31 +39,41 @@ async function CreateBooking(req, res) {
             }
         }
 
+        // 🔥 TYPE SET (MAIN CHANGE)
+        let type = isConfirmed ? "booking" : "enquiry";
+
         let booking = await Booking.create({
             bookingId: "BK" + Date.now(),
             customer,
             events,
             addons,
-            estimate
+            estimate,
+            type   // 🔥 NEW FIELD
         });
 
-        // 🔥 Populate service names for mail (serviceId -> name, price)
-        let populatedBooking = await Booking.findById(booking._id)
-            .populate("events.services.serviceId", "name price priceType")
-            .populate("addons.serviceId", "name price priceType");
+        // 🔥 MAIL ONLY IF BOOKING CONFIRMED
+        if (type === "booking") {
 
-        // 🔥 Mail call with full details
-        await sendBookingMail({
-            customer: populatedBooking.customer,
-            bookingId: populatedBooking.bookingId,
-            events: populatedBooking.events,
-            addons: populatedBooking.addons,
-            estimate: populatedBooking.estimate,
-            status: populatedBooking.status,
-            createdAt: populatedBooking.createdAt
+            let populatedBooking = await Booking.findById(booking._id)
+                .populate("events.services.serviceId", "name price priceType")
+                .populate("addons.serviceId", "name price priceType");
+
+            await sendBookingMail({
+                customer: populatedBooking.customer,
+                bookingId: populatedBooking.bookingId,
+                events: populatedBooking.events,
+                addons: populatedBooking.addons,
+                estimate: populatedBooking.estimate,
+                status: populatedBooking.status,
+                createdAt: populatedBooking.createdAt
+            });
+        }
+
+        res.json({
+            success: true,
+            message: type === "booking" ? "Booking created" : "Enquiry saved",
+            booking
         });
-
-        res.json({ success: true, booking });
 
     } catch (error) {
         res.json({ success: false, message: error.message });

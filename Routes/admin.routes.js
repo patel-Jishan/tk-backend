@@ -2,13 +2,17 @@ let express = require('express');
 const { Auth } = require('../Middlewares/Auth');
 const {
     Dashboard,
-    GetBookings,
     GetSingleBooking,
     UpdateStatus,
     GetPhotographers,
     GetAvailablePhotographers,
-    AdminLogin
+    AdminLogin,
+    GetEnquiries,
+    ConvertToBooking,
+    GetBookings,
 } = require('../Controllers/AdminController');
+
+
 
 let router = express.Router();
 
@@ -19,6 +23,10 @@ router.get("/dashboard", Auth("admin"), Dashboard);
 router.get("/bookings", Auth("admin"), GetBookings);
 router.get("/bookings/:id", Auth("admin"), GetSingleBooking);
 router.patch("/bookings/:id/status", Auth("admin"), UpdateStatus);
+
+router.get("/enquiries", Auth("admin"), GetEnquiries);
+router.get("/bookings-only", Auth("admin"), GetBookings);
+router.patch("/convert/:id", Auth("admin"), ConvertToBooking);
 
 router.get("/photographers", Auth("admin"), GetPhotographers);
 router.get("/photographers/available", Auth("admin"), GetAvailablePhotographers);

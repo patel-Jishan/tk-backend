@@ -85,12 +85,26 @@ async function Dashboard(req, res) {
 // 📄 Get All Bookings
 async function GetBookings(req, res) {
     try {
-        let bookings = await Booking.find()
+        let bookings = await Booking.find({ type: "booking" }) // 🔥 filter
             .populate("events.services.serviceId")
             .populate("addons.serviceId")
             .populate("assigned.photographerId");
 
         res.json({ success: true, bookings });
+
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+}
+
+
+async function GetEnquiries(req, res) {
+    try {
+        let data = await Booking.find({ type: "enquiry" })
+            .populate("events.services.serviceId")
+            .populate("addons.serviceId");
+
+        res.json({ success: true, data });
 
     } catch (error) {
         res.json({ success: false, message: error.message });
@@ -139,6 +153,22 @@ async function UpdateStatus(req, res) {
     }
 }
 
+async function ConvertToBooking(req, res) {
+    try {
+        let { id } = req.params;
+
+        let booking = await Booking.findByIdAndUpdate(
+            id,
+            { type: "booking" },
+            { new: true }
+        );
+
+        res.json({ success: true, booking });
+
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+}
 
 // 👤 Get All Photographers
 async function GetPhotographers(req, res) {
@@ -191,8 +221,10 @@ module.exports = {
     AdminLogin,
     Dashboard,
     GetBookings,
+    GetEnquiries,
     GetSingleBooking,
     UpdateStatus,
+    ConvertToBooking,
     GetPhotographers,
     GetAvailablePhotographers
 };
