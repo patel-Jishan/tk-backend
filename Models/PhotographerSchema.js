@@ -19,6 +19,14 @@ const photographerSchema = new mongoose.Schema({
         "drone"
       ]
     },
+    
+    avatar: {
+      url: {
+    type: String,
+    default : "https://res.cloudinary.com/dx8zo5ukg/image/upload/v1778921634/Profile_cyjo1x.png",
+  },
+      public_id: String,
+    },
 
     bookedDates: [String], // ["2026-05-10"]
 
