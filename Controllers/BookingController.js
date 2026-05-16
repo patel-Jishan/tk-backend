@@ -1,5 +1,6 @@
 const Booking = require("../Models/BookingSchema");
 const Service = require("../Models/ServiceSchema");
+const Photographer = require("../Models/PhotographerSchema");
 
 const { sendBookingMail } = require("./MailController");
 
@@ -37,24 +38,31 @@ async function CreateBooking(req, res) {
             }
         }
 
-       let booking = await Booking.create({
-    bookingId: "BK" + Date.now(),
-    customer,
-    events,
-    addons,
-    estimate
-});
+        let booking = await Booking.create({
+            bookingId: "BK" + Date.now(),
+            customer,
+            events,
+            addons,
+            estimate
+        });
 
-// 🔥 MAIL CALL (yahi add karna hai)
-await sendBookingMail({
-    name: customer.name,
-    email: customer.email,
-    bookingId: booking.bookingId,
-    events: booking.events,
-    estimate: booking.estimate
-});
+        // 🔥 Populate service names for mail (serviceId -> name, price)
+        let populatedBooking = await Booking.findById(booking._id)
+            .populate("events.services.serviceId", "name price priceType")
+            .populate("addons.serviceId", "name price priceType");
 
-res.json({ success: true, booking });
+        // 🔥 Mail call with full details
+        await sendBookingMail({
+            customer: populatedBooking.customer,
+            bookingId: populatedBooking.bookingId,
+            events: populatedBooking.events,
+            addons: populatedBooking.addons,
+            estimate: populatedBooking.estimate,
+            status: populatedBooking.status,
+            createdAt: populatedBooking.createdAt
+        });
+
+        res.json({ success: true, booking });
 
     } catch (error) {
         res.json({ success: false, message: error.message });
@@ -76,7 +84,7 @@ async function GetAllBookings(req, res) {
 }
 
 async function AssignPhotographer(req, res) {
-     try {
+    try {
         let { id } = req.params;
         let { assigned } = req.body;
 
@@ -118,9 +126,7 @@ async function AssignPhotographer(req, res) {
     } catch (error) {
         res.json({ success: false, message: error.message });
     }
-
 }
-
 
 async function GetEstimate(req, res) {
     try {
@@ -162,8 +168,6 @@ async function GetEstimate(req, res) {
         res.json({ success: false, message: error.message });
     }
 }
-
-
 
 module.exports = {
     CreateBooking,
