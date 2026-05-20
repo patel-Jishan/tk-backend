@@ -100,7 +100,7 @@ async function sendBookingMail({ customer, bookingId, events, addons, estimate, 
     //  CUSTOMER MAIL
     // ══════════════════════════════════════
     await transporter.sendMail({
-      from: `TK MOMENTS CAPTURE <${process.env.BREVO_USER}>`,
+      from: `TK MOMENTS CAPTURE <${process.env.EMAIL_USER}>`,
       to: email,
       subject: `✅ Booking Confirmed — ${bookingId} | TK Moments Capture`,
       html: `<!DOCTYPE html>
@@ -200,7 +200,7 @@ async function sendBookingMail({ customer, bookingId, events, addons, estimate, 
     //  OWNER / ADMIN MAIL
     // ══════════════════════════════════════
     await transporter.sendMail({
-      from: `TK Booking System <${process.env.BREVO_USER}>`,
+      from: `TK Booking System <${process.env.EMAIL_USER}>`,
       to: process.env.OWNER_EMAIL || process.env.BREVO_USER,
       subject: `🚨 New Booking — ${bookingId} | ${name} | ₹${fmtAmt(estimate)}`,
       html: `<!DOCTYPE html>
