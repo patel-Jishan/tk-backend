@@ -2,98 +2,97 @@ const nodemailer = require("nodemailer");
 
 // ─── Helper: format date nicely ───────────────────────────────────────────────
 function fmtDate(createdAt) {
-    if (!createdAt) return "—";
-    return new Date(createdAt).toLocaleString("en-IN", {
-        day: "2-digit", month: "short", year: "numeric",
-        hour: "2-digit", minute: "2-digit"
-    });
+  if (!createdAt) return "—";
+  return new Date(createdAt).toLocaleString("en-IN", {
+    day: "2-digit", month: "short", year: "numeric",
+    hour: "2-digit", minute: "2-digit"
+  });
 }
 
 // ─── Helper: format ₹ amount ──────────────────────────────────────────────────
 function fmtAmt(n) {
-    return (n || 0).toLocaleString("en-IN");
+  return (n || 0).toLocaleString("en-IN");
 }
 
 // ─── Build event rows ─────────────────────────────────────────────────────────
 function buildEventRows(events, showServices = true) {
-    return events.map(e => {
-        const servicePills = showServices
-            ? (e.services || []).map(s => {
-                const svc  = s.serviceId;          // populated object
-                const name = svc?.name || "Service";
-                const qty  = s.quantity > 1 ? ` ×${s.quantity}` : "";
-                return `<span style="display:inline-block;background:#f5ede0;border:0.5px solid #d4b88a;border-radius:20px;padding:2px 10px;font-size:11px;color:#6b4c2e;margin:2px 2px 2px 0">${name}${qty}</span>`;
-              }).join("") || "—"
-            : null;
+  return events.map(e => {
+    const servicePills = showServices
+      ? (e.services || []).map(s => {
+        const svc = s.serviceId;          // populated object
+        const name = svc?.name || "Service";
+        const qty = s.quantity > 1 ? ` ×${s.quantity}` : "";
+        return `<span style="display:inline-block;background:#f5ede0;border:0.5px solid #d4b88a;border-radius:20px;padding:2px 10px;font-size:11px;color:#6b4c2e;margin:2px 2px 2px 0">${name}${qty}</span>`;
+      }).join("") || "—"
+      : null;
 
-        return `
+    return `
         <tr>
           <td style="padding:10px 12px;color:#8b5e2e;font-weight:bold;border-bottom:0.5px solid #ead9c0;vertical-align:top">Day ${e.day}</td>
           <td style="padding:10px 12px;color:#4a3420;border-bottom:0.5px solid #ead9c0;vertical-align:top">${e.date}</td>
           <td style="padding:10px 12px;color:#4a3420;border-bottom:0.5px solid #ead9c0;vertical-align:top">${e.location}</td>
           ${showServices ? `<td style="padding:10px 12px;border-bottom:0.5px solid #ead9c0;vertical-align:top">${servicePills}</td>` : ""}
         </tr>`;
-    }).join("");
+  }).join("");
 }
 
 // ─── Build addon rows ─────────────────────────────────────────────────────────
 function buildAddonRows(addons) {
-    if (!addons?.length) return "";
-    return addons.map(a => {
-        const svc   = a.serviceId;                 // populated object
-        const name  = svc?.name || "Add-on";
-        const qty   = a.quantity > 1 ? ` ×${a.quantity}` : "";
-        const price = svc?.priceType === "per_unit"
-            ? (svc.price || 0) * (a.quantity || 1)
-            : (svc?.price || 0);
-        return `
+  if (!addons?.length) return "";
+  return addons.map(a => {
+    const svc = a.serviceId;                 // populated object
+    const name = svc?.name || "Add-on";
+    const qty = a.quantity > 1 ? ` ×${a.quantity}` : "";
+    const price = svc?.priceType === "per_unit"
+      ? (svc.price || 0) * (a.quantity || 1)
+      : (svc?.price || 0);
+    return `
         <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:0.5px solid #ead9c0;font-size:13px">
           <span style="color:#4a3420">${name}${qty}</span>
           <span style="color:#8b5e2e;font-weight:bold">₹${fmtAmt(price)}</span>
         </div>`;
-    }).join("");
+  }).join("");
 }
 
 
 // ═════════════════════════════════════════════════════════════════════════════
 async function sendBookingMail({ customer, bookingId, events, addons, estimate, status, createdAt }) {
-    try {
-        const { name, email, phone, note } = customer;
+  try {
+    const { name, email, phone, note } = customer;
 
-        // const transporter = nodemailer.createTransport({
-        //     service: "gmail",
-        //     auth: {
-        //         user: process.env.EMAIL_USER,
-        //         pass: process.env.EMAIL_PASS,
-        //     },
-        // });
-        const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
-    secure: false,
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-    },
-    tls: {
-        rejectUnauthorized: false
-    }
-});
+    // const transporter = nodemailer.createTransport({
+    //     service: "gmail",
+    //     auth: {
+    //         user: process.env.EMAIL_USER,
+    //         pass: process.env.EMAIL_PASS,
+    //     },
+    // });
+    const transporter = nodemailer.createTransport({
+      host: "smtp-relay.brevo.com",
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.BREVO_USER,
+        pass: process.env.BREVO_PASS,
+      },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+    });
 
-        const eventRowsWithServices    = buildEventRows(events, true);
-        const eventRowsWithoutServices = buildEventRows(events, false);
-        const addonRows                = buildAddonRows(addons);
-        const bookingDate              = fmtDate(createdAt);
-        const statusColor              = status === "confirmed" ? "#5a8a3c" : status === "cancelled" ? "#a33030" : "#b87a1a";
+    const eventRowsWithServices = buildEventRows(events, true);
+    const eventRowsWithoutServices = buildEventRows(events, false);
+    const addonRows = buildAddonRows(addons);
+    const bookingDate = fmtDate(createdAt);
+    const statusColor = status === "confirmed" ? "#5a8a3c" : status === "cancelled" ? "#a33030" : "#b87a1a";
 
-        // ══════════════════════════════════════
-        //  CUSTOMER MAIL
-        // ══════════════════════════════════════
-        await transporter.sendMail({
-            from: `TK MOMENTS CAPTURE <${process.env.EMAIL_USER}>`,
-            to: email,
-            subject: `✅ Booking Confirmed — ${bookingId} | TK Moments Capture`,
-            html: `<!DOCTYPE html>
+    // ══════════════════════════════════════
+    //  CUSTOMER MAIL
+    // ══════════════════════════════════════
+    await transporter.sendMail({
+      from: `TK MOMENTS CAPTURE <${process.env.BREVO_USER}>`,
+      to: email,
+      subject: `✅ Booking Confirmed — ${bookingId} | TK Moments Capture`,
+      html: `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#f5f0e8;font-family:Georgia,'Times New Roman',serif">
@@ -183,17 +182,17 @@ async function sendBookingMail({ customer, bookingId, events, addons, estimate, 
   </div>
 
 </div></div></body></html>`
-        });
+    });
 
 
-        // ══════════════════════════════════════
-        //  OWNER / ADMIN MAIL
-        // ══════════════════════════════════════
-        await transporter.sendMail({
-            from: `TK Booking System <${process.env.EMAIL_USER}>`,
-            to: process.env.OWNER_EMAIL || process.env.EMAIL_USER,
-            subject: `🚨 New Booking — ${bookingId} | ${name} | ₹${fmtAmt(estimate)}`,
-            html: `<!DOCTYPE html>
+    // ══════════════════════════════════════
+    //  OWNER / ADMIN MAIL
+    // ══════════════════════════════════════
+    await transporter.sendMail({
+      from: `TK Booking System <${process.env.BREVO_USER}>`,
+      to: process.env.OWNER_EMAIL || process.env.BREVO_USER,
+      subject: `🚨 New Booking — ${bookingId} | ${name} | ₹${fmtAmt(estimate)}`,
+      html: `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#f5f0e8;font-family:Arial,sans-serif">
@@ -256,11 +255,11 @@ async function sendBookingMail({ customer, bookingId, events, addons, estimate, 
   </div>
 
 </div></div></body></html>`
-        });
+    });
 
-    } catch (error) {
-        console.log("Mail Error:", error.message);
-    }
+  } catch (error) {
+    console.log("Mail Error:", error.message);
+  }
 }
 
 module.exports = { sendBookingMail };
