@@ -67,17 +67,17 @@ async function sendBookingMail({ customer, bookingId, events, addons, estimate, 
     //         pass: process.env.EMAIL_PASS,
     //     },
     // });
-    const transporter = nodemailer.createTransport({
-      host: "smtp-relay.brevo.com",
-      port: 587,
-      secure: false,
-      auth: {
-        user: process.env.BREVO_USER,
-        pass: process.env.BREVO_PASS,
-      },
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-    });
+   const transporter = nodemailer.createTransport({
+  host: "smtp-relay.brevo.com",
+  port: 587,
+  secure: false,
+  auth: {
+    user: process.env.BREVO_USER,
+    pass: process.env.BREVO_PASS,
+  },
+  family: 4, // 🔥 MOST IMPORTANT FIX
+  connectionTimeout: 10000,
+});
 
     const eventRowsWithServices = buildEventRows(events, true);
     const eventRowsWithoutServices = buildEventRows(events, false);
