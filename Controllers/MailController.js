@@ -60,13 +60,25 @@ async function sendBookingMail({ customer, bookingId, events, addons, estimate, 
     try {
         const { name, email, phone, note } = customer;
 
+        // const transporter = nodemailer.createTransport({
+        //     service: "gmail",
+        //     auth: {
+        //         user: process.env.EMAIL_USER,
+        //         pass: process.env.EMAIL_PASS,
+        //     },
+        // });
         const transporter = nodemailer.createTransport({
-            service: "gmail",
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS,
-            },
-        });
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false,
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+    },
+    tls: {
+        rejectUnauthorized: false
+    }
+});
 
         const eventRowsWithServices    = buildEventRows(events, true);
         const eventRowsWithoutServices = buildEventRows(events, false);
