@@ -201,7 +201,7 @@ async function sendBookingMail({ customer, bookingId, events, addons, estimate, 
     // ══════════════════════════════════════
     await transporter.sendMail({
       from: `TK Booking System <${process.env.EMAIL_USER}>`,
-      to: process.env.OWNER_EMAIL || process.env.BREVO_USER,
+      to: process.env.EMAIL_USER || process.env.BREVO_USER,
       subject: `🚨 New Booking — ${bookingId} | ${name} | ₹${fmtAmt(estimate)}`,
       html: `<!DOCTYPE html>
 <html lang="en">
