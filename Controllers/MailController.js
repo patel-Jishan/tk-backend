@@ -77,8 +77,19 @@ async function sendBookingMail({ customer, bookingId, events, addons, estimate, 
   },
   family: 4, 
   debug: true,
+      tls: {
+    rejectUnauthorized: false,
+    minVersion: "TLSv1.2",
+  },
 });
 
+    transporter.verify((error, success) => {
+  if (error) {
+    console.log("SMTP Error:", error);
+  } else {
+    console.log("SMTP Server Ready");
+  }
+});
     const eventRowsWithServices = buildEventRows(events, true);
     const eventRowsWithoutServices = buildEventRows(events, false);
     const addonRows = buildAddonRows(addons);
