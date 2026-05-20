@@ -69,14 +69,14 @@ async function sendBookingMail({ customer, bookingId, events, addons, estimate, 
     // });
    const transporter = nodemailer.createTransport({
   host: "smtp-relay.brevo.com",
-  port: 587,
+  port: 2525,
   secure: false,
   auth: {
     user: process.env.BREVO_USER,
     pass: process.env.BREVO_PASS,
   },
-  family: 4, // 🔥 MOST IMPORTANT FIX
-  connectionTimeout: 10000,
+  family: 4, 
+  debug: true,
 });
 
     const eventRowsWithServices = buildEventRows(events, true);
