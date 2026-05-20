@@ -226,5 +226,6 @@ module.exports = {
     UpdateStatus,
     ConvertToBooking,
     GetPhotographers,
-    GetAvailablePhotographers
+    GetAvailablePhotographers,
+    LogOut
 };

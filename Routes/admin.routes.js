@@ -10,6 +10,7 @@ const {
     GetEnquiries,
     ConvertToBooking,
     GetBookings,
+    LogOut,
 } = require('../Controllers/AdminController');
 
 
@@ -30,5 +31,6 @@ router.patch("/convert/:id", Auth("admin"), ConvertToBooking);
 
 router.get("/photographers", Auth("admin"), GetPhotographers);
 router.get("/photographers/available", Auth("admin"), GetAvailablePhotographers);
+router.post("/logout", Auth("admin"),LogOut);
 
 module.exports = router;

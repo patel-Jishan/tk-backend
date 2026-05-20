@@ -6,6 +6,6 @@ const router = express.Router();
 
 router.post("/", Auth("admin"), CreateService);   
 router.get("/", GetServices); 
-router.get("/:id", Auth("admin", DeleteService));                   
+router.delete   ("/:id", Auth("admin", DeleteService));                   
 
 module.exports = router;
