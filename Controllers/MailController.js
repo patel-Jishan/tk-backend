@@ -49,7 +49,7 @@ function buildAddonRows(addons) {
     return `
         <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:0.5px solid #ead9c0;font-size:13px">
           <span style="color:#4a3420">${name}${qty}</span>
-          <span style="color:#8b5e2e;font-weight:bold">₹${fmtAmt(price)}</span>
+          <span style="color:#8b5e2e;font-weight:bold"> : ₹${fmtAmt(price)}</span>
         </div>`;
   }).join("");
 }
@@ -135,9 +135,7 @@ async function sendBookingMail({ customer, bookingId, events, addons, estimate, 
     <!-- Booking Confirm -->
     <div style="background:#c4a265;padding:14px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
 
-      <div style="width:28px;height:28px;background:#3b2a1a;border-radius:50%;text-align:center;line-height:28px;flex-shrink:0;">
-        <span style="color:#e8c97a;font-size:16px;">✓</span>
-      </div>
+     
 
       <div style="color:#3b2a1a;font-size:13px;letter-spacing:1px;font-style:italic;font-family:Arial,sans-serif;flex:1;min-width:220px;">
         Booking Confirmed — We're excited to capture your moments!
@@ -355,7 +353,7 @@ ${service.serviceId?.name || "Service"}
       <div style="background:#f9f5ee;border:1px solid #d4c4a0;border-radius:8px;padding:16px;margin-bottom:24px;">
         ${addonRows}
       </div>
-      ` : ""}
+      `  ""}
 
       <!-- Payment -->
       <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#8b6a4a;font-family:Arial,sans-serif;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #d4c4a0;">
@@ -382,7 +380,7 @@ ${service.serviceId?.name || "Service"}
           </span>
 
           <span style="color:#e8c97a;font-size:24px;">
-            ₹${fmtAmt(estimate)}
+            : ₹${fmtAmt(estimate)}
           </span>
 
         </div>
@@ -586,7 +584,7 @@ ${service.serviceId?.name || "Service"}
 
     ${addonRows ? `
     <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#8b6a4a;margin-bottom:10px;padding-bottom:8px;border-bottom:0.5px solid #d4c4a0">Add-ons</div>
-    <div style="background:#f9f5ee;border:0.5px solid #d4c4a0;border-radius:8px;padding:14px 16px;margin-bottom:20px">${addonRows} : </div>` : ""}
+    <div style="background:#f9f5ee;border:0.5px solid #d4c4a0;border-radius:8px;padding:14px 16px;margin-bottom:20px">${addonRows} </div>`  ""}
 
     <div style="background:#3b2a1a;border-radius:8px;padding:16px 18px;display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
       <span style="color:#e8c97a;font-size:12px;letter-spacing:2px;text-transform:uppercase">Total Estimate:</span>
