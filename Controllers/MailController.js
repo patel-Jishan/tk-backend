@@ -584,7 +584,7 @@ ${service.serviceId?.name || "Service"}
 
     ${addonRows ? `
     <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#8b6a4a;margin-bottom:10px;padding-bottom:8px;border-bottom:0.5px solid #d4c4a0">Add-ons</div>
-    <div style="background:#f9f5ee;border:0.5px solid #d4c4a0;border-radius:8px;padding:14px 16px;margin-bottom:20px">${addonRows} </div>`  ""}
+    <div style="background:#f9f5ee;border:0.5px solid #d4c4a0;border-radius:8px;padding:14px 16px;margin-bottom:20px">${addonRows} </div>` : ""}
 
     <div style="background:#3b2a1a;border-radius:8px;padding:16px 18px;display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
       <span style="color:#e8c97a;font-size:12px;letter-spacing:2px;text-transform:uppercase">Total Estimate:</span>
