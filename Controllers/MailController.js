@@ -353,7 +353,7 @@ ${service.serviceId?.name || "Service"}
       <div style="background:#f9f5ee;border:1px solid #d4c4a0;border-radius:8px;padding:16px;margin-bottom:24px;">
         ${addonRows}
       </div>
-      `  ""}
+      ` : ""}
 
       <!-- Payment -->
       <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#8b6a4a;font-family:Arial,sans-serif;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #d4c4a0;">
