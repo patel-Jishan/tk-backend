@@ -12,12 +12,14 @@ const adminRoutes = require("./Routes/admin.routes");
 const bookingRoutes = require("./Routes/booking.routes");
 const photographerRoutes = require("./Routes/photographer.routes");
 const serviceRoutes = require("./Routes/service.routes");
+const contactRoutes = require("./Routes/contact.routes");
 
 // Routes use
 app.use("/api/admin", adminRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/photographers", photographerRoutes);
 app.use("/api/services", serviceRoutes);
+app.use("/api/contactUs", contactRoutes);
 
 // Test route
 app.get("/", (req, res) => {
