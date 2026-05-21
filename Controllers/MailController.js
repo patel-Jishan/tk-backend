@@ -105,94 +105,324 @@ async function sendBookingMail({ customer, bookingId, events, addons, estimate, 
       subject: `✅ Booking Confirmed — ${bookingId} | TK Moments Capture`,
       html: `<!DOCTYPE html>
 <html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f5f0e8;font-family:Georgia,'Times New Roman',serif">
-<div style="max-width:620px;margin:0 auto;padding:24px 16px">
-<div style="background:#fffdf8;border-radius:12px;overflow:hidden;border:0.5px solid #d4c4a0">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Responsive Email</title>
+</head>
 
-  <div style="background:#3b2a1a;padding:32px 32px 24px;text-align:center">
-    <div style="color:#e8c97a;font-size:11px;letter-spacing:4px;text-transform:uppercase;margin-bottom:8px;font-family:Arial,sans-serif">Photography Studio</div>
-    <div style="color:#fffdf8;font-size:26px;letter-spacing:2px">TK Moments Capture</div>
-    <div style="color:#b89a6a;font-size:12px;letter-spacing:2px;margin-top:6px;font-style:italic;font-family:Arial,sans-serif">Preserving your precious memories</div>
-  </div>
+<body style="margin:0;padding:0;background:#f5f0e8;font-family:Georgia,'Times New Roman',serif;">
 
-  <div style="background:#c4a265;padding:14px 32px;display:flex;align-items:center;gap:10px">
-    <div style="width:28px;height:28px;background:#3b2a1a;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-      <span style="color:#e8c97a;font-size:16px;line-height:1">&#10003;</span>
-    </div>
-    <span style="color:#3b2a1a;font-size:13px;letter-spacing:1px;font-style:italic;font-family:Arial,sans-serif">Booking Confirmed — We're excited to capture your moments!</span>
-  </div>
+<div style="width:100%;background:#f5f0e8;padding:20px 10px;box-sizing:border-box;">
 
-  <div style="padding:28px 32px">
+  <div style="max-width:620px;margin:auto;background:#fffdf8;border-radius:12px;overflow:hidden;border:1px solid #d4c4a0;">
 
-    <div style="font-size:22px;color:#3b2a1a;margin-bottom:8px">Dear <span style="color:#8b5e2e">${name}</span>,</div>
-    <p style="color:#6b5040;font-size:14px;line-height:1.7;margin-bottom:24px;font-family:Arial,sans-serif">
-      Thank you for choosing TK Moments Capture. Your booking has been successfully received. Below is a complete summary of your events, services, and payment details. We will be in touch within 24 hours to finalize arrangements.
-    </p>
-
-    <div style="background:#f5ede0;border:0.5px solid #d4b88a;border-left:3px solid #8b5e2e;border-radius:0 8px 8px 0;padding:12px 16px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:center;font-family:Arial,sans-serif">
-      <div>
-        <div style="font-size:11px;letter-spacing:2px;color:#8b6a4a;text-transform:uppercase;margin-bottom:4px">Booking Reference</div>
-        <div style="font-size:17px;color:#3b2a1a;letter-spacing:1px">${bookingId}</div>
-        <div style="font-size:11px;color:#8b6a4a;margin-top:4px">${bookingDate}</div>
+    <!-- Header -->
+    <div style="background:#3b2a1a;padding:40px 20px 25px;text-align:center;">
+      <div style="color:#e8c97a;font-size:11px;letter-spacing:4px;text-transform:uppercase;font-family:Arial,sans-serif;">
+        Photography Studio
       </div>
-      <div style="text-align:right">
-        <div style="font-size:11px;letter-spacing:2px;color:#8b6a4a;text-transform:uppercase;margin-bottom:4px">Status</div>
-        <div style="color:${statusColor};font-size:13px;font-style:italic;text-transform:capitalize">${status || "pending"}</div>
+
+      <div style="color:#fffdf8;font-size:clamp(22px,5vw,30px);margin-top:8px;">
+        TK Moments Capture
+      </div>
+
+      <div style="color:#b89a6a;font-size:12px;letter-spacing:2px;margin-top:8px;font-style:italic;font-family:Arial,sans-serif;">
+        Preserving your precious memories
       </div>
     </div>
 
-    <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#8b6a4a;font-family:Arial,sans-serif;margin-bottom:12px;padding-bottom:8px;border-bottom:0.5px solid #d4c4a0">Your Details</div>
-    <div style="background:#f9f5ee;border:0.5px solid #d4c4a0;border-radius:8px;padding:14px 16px;margin-bottom:24px;font-family:Arial,sans-serif;font-size:13px">
-      <div style="display:flex;padding:4px 0"><span style="color:#8b6a4a;width:90px;flex-shrink:0">Name</span><span style="color:#3b2a1a;font-weight:bold">${name}</span></div>
-      <div style="display:flex;padding:4px 0"><span style="color:#8b6a4a;width:90px;flex-shrink:0">Email</span><span style="color:#3b2a1a">${email}</span></div>
-      ${phone ? `<div style="display:flex;padding:4px 0"><span style="color:#8b6a4a;width:90px;flex-shrink:0">Phone</span><span style="color:#3b2a1a">${phone}</span></div>` : ""}
-      ${note ? `<div style="display:flex;padding:4px 0"><span style="color:#8b6a4a;width:90px;flex-shrink:0">Note</span><span style="color:#6b5040;font-style:italic">${note}</span></div>` : ""}
-    </div>
+    <!-- Booking Confirm -->
+    <div style="background:#c4a265;padding:14px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
 
-    <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#8b6a4a;font-family:Arial,sans-serif;margin-bottom:12px;padding-bottom:8px;border-bottom:0.5px solid #d4c4a0">Event Schedule</div>
-    <table style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:13px;margin-bottom:24px">
-      <thead>
-        <tr style="background:#3b2a1a">
-          <th style="color:#e8c97a;font-weight:normal;font-size:11px;letter-spacing:2px;text-transform:uppercase;padding:10px 12px;text-align:left">Day</th>
-          <th style="color:#e8c97a;font-weight:normal;font-size:11px;letter-spacing:2px;text-transform:uppercase;padding:10px 12px;text-align:left">Date</th>
-          <th style="color:#e8c97a;font-weight:normal;font-size:11px;letter-spacing:2px;text-transform:uppercase;padding:10px 12px;text-align:left">Location</th>
-          <th style="color:#e8c97a;font-weight:normal;font-size:11px;letter-spacing:2px;text-transform:uppercase;padding:10px 12px;text-align:left">Services</th>
-        </tr>
-      </thead>
-      <tbody>${eventRowsWithServices}</tbody>
-    </table>
-
-    ${addonRows ? `
-    <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#8b6a4a;font-family:Arial,sans-serif;margin-bottom:12px;padding-bottom:8px;border-bottom:0.5px solid #d4c4a0">Add-ons Included</div>
-    <div style="background:#f9f5ee;border:0.5px solid #d4c4a0;border-radius:8px;padding:14px 16px;margin-bottom:24px">${addonRows}</div>` : ""}
-
-    <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#8b6a4a;font-family:Arial,sans-serif;margin-bottom:12px;padding-bottom:8px;border-bottom:0.5px solid #d4c4a0">Payment Summary</div>
-    <div style="background:#3b2a1a;border-radius:10px;padding:20px;margin-bottom:24px;font-family:Arial,sans-serif">
-      <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid #5a3e28;font-size:13px">
-        <span style="color:#b89a6a">Event Services (${events.length} day${events.length > 1 ? "s" : ""})</span>
-        <span style="color:#fffdf8">₹${fmtAmt(estimate)}</span>
+      <div style="width:28px;height:28px;background:#3b2a1a;border-radius:50%;text-align:center;line-height:28px;flex-shrink:0;">
+        <span style="color:#e8c97a;font-size:16px;">✓</span>
       </div>
-      <div style="display:flex;justify-content:space-between;padding:12px 0 0;border-top:0.5px solid #c4a265;margin-top:6px">
-        <span style="color:#e8c97a;font-size:12px;letter-spacing:2px;text-transform:uppercase">Total Estimate</span>
-        <span style="color:#e8c97a;font-size:22px">₹${fmtAmt(estimate)}</span>
+
+      <div style="color:#3b2a1a;font-size:13px;letter-spacing:1px;font-style:italic;font-family:Arial,sans-serif;flex:1;min-width:220px;">
+        Booking Confirmed — We're excited to capture your moments!
       </div>
     </div>
 
-    <div style="background:#f5ede0;border-radius:8px;padding:14px 16px;margin-bottom:20px;font-family:Arial,sans-serif;font-size:13px;color:#6b5040;line-height:1.7">
-      &#9432;&nbsp; Our team will contact you within 24 hours to confirm photographer assignments and finalize the schedule. For any queries, reach us at <strong style="color:#8b5e2e">${process.env.EMAIL_USER}</strong>.
+    <!-- Main -->
+    <div style="padding:25px 20px;box-sizing:border-box;">
+
+      <!-- Greeting -->
+      <div style="font-size:clamp(20px,5vw,26px);color:#3b2a1a;margin-bottom:10px;">
+        Dear <span style="color:#8b5e2e;">${name}</span>,
+      </div>
+
+      <p style="color:#6b5040;font-size:14px;line-height:1.8;font-family:Arial,sans-serif;margin-bottom:24px;">
+        Thank you for choosing TK Moments Capture. Your booking has been successfully received.
+        Below is a complete summary of your events, services, and payment details.
+        We will be in touch within 24 hours to finalize arrangements.
+      </p>
+
+      <!-- Booking Reference -->
+      <div style="background:#f5ede0;border:1px solid #d4b88a;border-left:4px solid #8b5e2e;border-radius:8px;padding:16px;margin-bottom:24px;font-family:Arial,sans-serif;">
+
+        <div style="display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap;">
+
+          <div>
+            <div style="font-size:11px;letter-spacing:2px;color:#8b6a4a;text-transform:uppercase;margin-bottom:5px;">
+              Booking Reference
+            </div>
+
+            <div style="font-size:18px;color:#3b2a1a;">
+              ${bookingId}
+            </div>
+
+            <div style="font-size:11px;color:#8b6a4a;margin-top:5px;">
+              ${bookingDate}
+            </div>
+          </div>
+
+          <div style="text-align:left;">
+            <div style="font-size:11px;letter-spacing:2px;color:#8b6a4a;text-transform:uppercase;margin-bottom:5px;">
+              Status
+            </div>
+
+            <div style="color:${statusColor};font-size:14px;font-style:italic;text-transform:capitalize;">
+              ${status || "pending"}
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- User Details -->
+      <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#8b6a4a;font-family:Arial,sans-serif;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #d4c4a0;">
+        Your Details
+      </div>
+
+      <div style="background:#f9f5ee;border:1px solid #d4c4a0;border-radius:8px;padding:16px;margin-bottom:24px;font-family:Arial,sans-serif;font-size:14px;">
+
+        <div style="padding:6px 0;">
+          <span style="color:#8b6a4a;font-weight:bold;">Name:</span>
+          <span style="color:#3b2a1a;"> ${name}</span>
+        </div>
+
+        <div style="padding:6px 0;word-break:break-word;">
+          <span style="color:#8b6a4a;font-weight:bold;">Email:</span>
+          <span style="color:#3b2a1a;"> ${email}</span>
+        </div>
+
+        ${phone ? `
+        <div style="padding:6px 0;">
+          <span style="color:#8b6a4a;font-weight:bold;">Phone:</span>
+          <span style="color:#3b2a1a;"> ${phone}</span>
+        </div>` : ""}
+
+        ${note ? `
+        <div style="padding:6px 0;">
+          <span style="color:#8b6a4a;font-weight:bold;">Note:</span>
+          <span style="color:#6b5040;font-style:italic;"> ${note}</span>
+        </div>` : ""}
+
+      </div>
+
+      <!-- Event Schedule -->
+      <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#8b6a4a;font-family:Arial,sans-serif;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #d4c4a0;">
+        Event Schedule
+      </div>
+
+     ${events.map((event, index) => `
+
+<!-- EVENT CARD -->
+<table width="100%" cellpadding="0" cellspacing="0" border="0"
+style="
+margin-bottom:22px;
+border:2px solid #3b2a1a;
+border-radius:22px;
+overflow:hidden;
+background:#f9f5ee;
+border-collapse:separate;
+">
+
+<!-- TOP -->
+<tr>
+<td style="
+padding:16px 20px;
+border-bottom:2px solid #3b2a1a;
+">
+
+<table width="100%">
+<tr>
+
+<td align="left"
+style="
+font-size:22px;
+font-family:Georgia,serif;
+color:#3b2a1a;
+font-weight:bold;
+">
+Day-${index + 1}
+</td>
+
+<td align="center"
+style="
+font-size:22px;
+font-family:Georgia,serif;
+color:#3b2a1a;
+font-weight:bold;
+width:20px;
+">
+
+</td>
+
+<td align="right"
+style="
+font-size:22px;
+font-family:Georgia,serif;
+color:#3b2a1a;
+font-weight:bold;
+">
+Date: ${event.date}
+</td>
+
+</tr>
+</table>
+
+</td>
+</tr>
+
+<!-- LOCATION -->
+<tr>
+<td style="
+padding:18px 20px;
+border-bottom:2px solid #3b2a1a;
+font-size:18px;
+line-height:28px;
+color:#3b2a1a;
+font-family:Arial,sans-serif;
+">
+
+<strong>Location :</strong>
+${event.location}
+
+</td>
+</tr>
+
+<!-- SERVICES -->
+<tr>
+<td style="
+padding:18px 20px;
+font-size:18px;
+line-height:28px;
+color:#3b2a1a;
+font-family:Arial,sans-serif;
+word-break:break-word;
+">
+
+<strong>Services :</strong>
+
+<div style="padding-top:10px;">
+
+${event.services.map(service => `
+
+<span style="
+display:inline-block;
+background:#ede2cf;
+border:1px solid #d4c4a0;
+border-radius:20px;
+padding:7px 14px;
+margin:4px;
+font-size:13px;
+line-height:20px;
+color:#3b2a1a;
+font-family:Arial,sans-serif;
+">
+${service.serviceId?.name || "Service"}
+</span>
+
+`).join("")}
+
+</div>
+
+</td>
+</tr>
+
+</table>
+
+`).join("")}
+
+      <!-- Addons -->
+      ${addonRows ? `
+      <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#8b6a4a;font-family:Arial,sans-serif;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #d4c4a0;">
+        Add-ons Included : 
+      </div>
+
+      <div style="background:#f9f5ee;border:1px solid #d4c4a0;border-radius:8px;padding:16px;margin-bottom:24px;">
+        ${addonRows}
+      </div>
+      ` : ""}
+
+      <!-- Payment -->
+      <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#8b6a4a;font-family:Arial,sans-serif;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #d4c4a0;">
+        Payment Summary
+      </div>
+
+      <div style="background:#3b2a1a;border-radius:10px;padding:20px;margin-bottom:24px;font-family:Arial,sans-serif;">
+
+        <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding-bottom:12px;border-bottom:1px solid #5a3e28;font-size:14px;">
+
+          <span style="color:#b89a6a;">
+            Event Services (${events.length} day${events.length > 1 ? "s" : ""})
+          </span>
+
+          <span style="color:#fffdf8;">
+            ₹${fmtAmt(estimate)}
+          </span>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding-top:15px;">
+
+          <span style="color:#e8c97a;font-size:12px;letter-spacing:2px;text-transform:uppercase;">
+            Total Estimate
+          </span>
+
+          <span style="color:#e8c97a;font-size:24px;">
+            ₹${fmtAmt(estimate)}
+          </span>
+
+        </div>
+
+      </div>
+
+      <!-- Info -->
+      <div style="background:#f5ede0;border-radius:8px;padding:16px;margin-bottom:20px;font-family:Arial,sans-serif;font-size:13px;color:#6b5040;line-height:1.8;">
+        ℹ️ Our team will contact you within 24 hours to confirm photographer assignments and finalize the schedule.
+        For any queries, reach us at
+        <strong style="color:#8b5e2e;">${process.env.EMAIL_USER}</strong>.
+      </div>
+
+      <hr style="border:none;border-top:1px solid #d4c4a0;margin:20px 0;">
+
+      <p style="font-family:Arial,sans-serif;font-size:12px;color:#9a7a60;text-align:center;font-style:italic;line-height:1.7;">
+        With warmth & gratitude — the TK Moments Capture family
+      </p>
+
     </div>
 
-    <hr style="border:none;border-top:0.5px solid #d4c4a0;margin:4px 0 20px">
-    <p style="font-family:Arial,sans-serif;font-size:12px;color:#9a7a60;text-align:center;font-style:italic">With warmth &amp; gratitude — the TK Moments Capture family</p>
+    <!-- Footer -->
+    <div style="background:#3b2a1a;padding:24px 20px;text-align:center;">
+
+      <div style="color:#e8c97a;font-size:14px;letter-spacing:2px;font-family:Arial,sans-serif;margin-bottom:8px;">
+        TK Moments Capture
+      </div>
+
+      <div style="color:#7a6050;font-size:11px;font-family:Arial,sans-serif;letter-spacing:1px;line-height:1.7;">
+        Bharuch, Gujarat | ${process.env.EMAIL_USER}
+      </div>
+
+    </div>
+
   </div>
 
-  <div style="background:#3b2a1a;padding:20px 32px;text-align:center">
-    <div style="color:#e8c97a;font-size:13px;letter-spacing:2px;font-family:Arial,sans-serif;margin-bottom:6px">TK Moments Capture</div>
-    <div style="color:#7a6050;font-size:11px;font-family:Arial,sans-serif;letter-spacing:1px">Ahmedabad, Gujarat &nbsp;|&nbsp; ${process.env.EMAIL_USER}</div>
-  </div>
+</div>
 
-</div></div></body></html>`
+</body>
+</html>`
     });
 
 
@@ -234,24 +464,132 @@ async function sendBookingMail({ customer, bookingId, events, addons, estimate, 
     </div>
 
     <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#8b6a4a;margin-bottom:10px;padding-bottom:8px;border-bottom:0.5px solid #d4c4a0">Event Schedule</div>
-    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:20px">
-      <thead>
-        <tr style="background:#3b2a1a">
-          <th style="color:#e8c97a;font-weight:normal;font-size:11px;letter-spacing:2px;text-transform:uppercase;padding:9px 12px;text-align:left">Day</th>
-          <th style="color:#e8c97a;font-weight:normal;font-size:11px;letter-spacing:2px;text-transform:uppercase;padding:9px 12px;text-align:left">Date</th>
-          <th style="color:#e8c97a;font-weight:normal;font-size:11px;letter-spacing:2px;text-transform:uppercase;padding:9px 12px;text-align:left">Location</th>
-          <th style="color:#e8c97a;font-weight:normal;font-size:11px;letter-spacing:2px;text-transform:uppercase;padding:9px 12px;text-align:left">Services</th>
-        </tr>
-      </thead>
-      <tbody>${eventRowsWithServices}</tbody>
-    </table>
+    ${events.map((event, index) => `
+
+<!-- EVENT CARD -->
+<table width="100%" cellpadding="0" cellspacing="0" border="0"
+style="
+margin-bottom:22px;
+border:2px solid #3b2a1a;
+border-radius:22px;
+overflow:hidden;
+background:#f9f5ee;
+border-collapse:separate;
+">
+
+<!-- TOP -->
+<tr>
+<td style="
+padding:16px 20px;
+border-bottom:2px solid #3b2a1a;
+">
+
+<table width="100%">
+<tr>
+
+<td align="left"
+style="
+font-size:22px;
+font-family:Georgia,serif;
+color:#3b2a1a;
+font-weight:bold;
+">
+Day-${index + 1}
+</td>
+
+<td align="center"
+style="
+font-size:22px;
+font-family:Georgia,serif;
+color:#3b2a1a;
+font-weight:bold;
+width:20px;
+">
+
+</td>
+
+<td align="right"
+style="
+font-size:22px;
+font-family:Georgia,serif;
+color:#3b2a1a;
+font-weight:bold;
+">
+Date: ${event.date}
+</td>
+
+</tr>
+</table>
+
+</td>
+</tr>
+
+<!-- LOCATION -->
+<tr>
+<td style="
+padding:18px 20px;
+border-bottom:2px solid #3b2a1a;
+font-size:18px;
+line-height:28px;
+color:#3b2a1a;
+font-family:Arial,sans-serif;
+">
+
+<strong>Location :</strong>
+${event.location}
+
+</td>
+</tr>
+
+<!-- SERVICES -->
+<tr>
+<td style="
+padding:18px 20px;
+font-size:18px;
+line-height:28px;
+color:#3b2a1a;
+font-family:Arial,sans-serif;
+word-break:break-word;
+">
+
+<strong>Services :</strong>
+
+<div style="padding-top:10px;">
+
+${event.services.map(service => `
+
+<span style="
+display:inline-block;
+background:#ede2cf;
+border:1px solid #d4c4a0;
+border-radius:20px;
+padding:7px 14px;
+margin:4px;
+font-size:13px;
+line-height:20px;
+color:#3b2a1a;
+font-family:Arial,sans-serif;
+">
+${service.serviceId?.name || "Service"}
+</span>
+
+`).join("")}
+
+</div>
+
+</td>
+</tr>
+
+</table>
+
+`).join("")}
 
     ${addonRows ? `
     <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#8b6a4a;margin-bottom:10px;padding-bottom:8px;border-bottom:0.5px solid #d4c4a0">Add-ons</div>
-    <div style="background:#f9f5ee;border:0.5px solid #d4c4a0;border-radius:8px;padding:14px 16px;margin-bottom:20px">${addonRows}</div>` : ""}
+    <div style="background:#f9f5ee;border:0.5px solid #d4c4a0;border-radius:8px;padding:14px 16px;margin-bottom:20px">${addonRows} : </div>` : ""}
 
     <div style="background:#3b2a1a;border-radius:8px;padding:16px 18px;display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-      <span style="color:#e8c97a;font-size:12px;letter-spacing:2px;text-transform:uppercase">Total Estimate</span>
+      <span style="color:#e8c97a;font-size:12px;letter-spacing:2px;text-transform:uppercase">Total Estimate:</span>
       <span style="color:#e8c97a;font-size:20px;font-family:Georgia,serif">₹${fmtAmt(estimate)}</span>
     </div>
 
