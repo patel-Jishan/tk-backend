@@ -94,45 +94,103 @@ async function GetAllBookings(req, res) {
     }
 }
 
+// async function AssignPhotographer(req, res) {
+//     try {
+//         let { id } = req.params;
+//         let { assigned } = req.body;
+
+//         let booking = await Booking.findById(id);
+//         if (!booking) {
+//             return res.json({ success: false, message: "Booking not found" });
+//         }
+
+//         // 🔥 Loop through each assignment
+//         for (let assign of assigned) {
+
+//             let event = booking.events.find(e => e.day === assign.day);
+//             if (!event) continue;
+
+//             let photographer = await Photographer.findById(assign.photographerId);
+//             if (!photographer) {
+//                 return res.json({ success: false, message: "Photographer not found" });
+//             }
+
+//             // 🔥 Availability Check
+//             if (photographer.bookedDates.includes(event.date)) {
+//                 return res.json({
+//                     success: false,
+//                     message: `Photographer already booked on ${event.date}`
+//                 });
+//             }
+
+//             // 🔥 Add booked date
+//             photographer.bookedDates.push(event.date);
+//             await photographer.save();
+//         }
+
+//         // 🔥 Save assignment in booking
+//         booking.assigned = assigned;
+//         await booking.save();
+
+//         res.json({ success: true, message: "Photographer assigned successfully", booking });
+
+//     } catch (error) {
+//         res.json({ success: false, message: error.message });
+//     }
+// }
+
+
 async function AssignPhotographer(req, res) {
     try {
         let { id } = req.params;
         let { assigned } = req.body;
 
         let booking = await Booking.findById(id);
+
         if (!booking) {
             return res.json({ success: false, message: "Booking not found" });
         }
 
-        // 🔥 Loop through each assignment
+        // 🔥 LOOP EACH DAY
         for (let assign of assigned) {
 
             let event = booking.events.find(e => e.day === assign.day);
             if (!event) continue;
 
-            let photographer = await Photographer.findById(assign.photographerId);
-            if (!photographer) {
-                return res.json({ success: false, message: "Photographer not found" });
-            }
+            for (let photographerId of assign.photographerIds) {
 
-            // 🔥 Availability Check
-            if (photographer.bookedDates.includes(event.date)) {
-                return res.json({
-                    success: false,
-                    message: `Photographer already booked on ${event.date}`
-                });
-            }
+                let photographer = await Photographer.findById(photographerId);
 
-            // 🔥 Add booked date
-            photographer.bookedDates.push(event.date);
-            await photographer.save();
+                if (!photographer) {
+                    return res.json({
+                        success: false,
+                        message: "Photographer not found"
+                    });
+                }
+
+                // ❌ already booked check
+                if (photographer.bookedDates.includes(event.date)) {
+                    return res.json({
+                        success: false,
+                        message: `Photographer already booked on ${event.date}`
+                    });
+                }
+
+                // ✅ add booked date
+                photographer.bookedDates.push(event.date);
+                await photographer.save();
+            }
         }
 
-        // 🔥 Save assignment in booking
+        // ✅ save assignment
         booking.assigned = assigned;
         await booking.save();
 
-        res.json({ success: true, message: "Photographer assigned successfully", booking });
+        res.json({
+            success: true,
+            message: "Photographer assigned successfully",
+            booking
+        });
 
     } catch (error) {
         res.json({ success: false, message: error.message });

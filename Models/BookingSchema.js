@@ -19,12 +19,22 @@ const eventSchema = new mongoose.Schema({
   ]
 });
 
+// const assignedSchema = new mongoose.Schema({
+//   day: Number,
+//   photographerId: {
+//     type: mongoose.Schema.Types.ObjectId,
+//     ref: "Photographer"
+//   }
+// });
+
 const assignedSchema = new mongoose.Schema({
   day: Number,
-  photographerId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Photographer"
-  }
+  photographerIds: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Photographer"
+    }
+  ]
 });
 
 const bookingSchema = new mongoose.Schema(
