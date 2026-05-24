@@ -14,6 +14,17 @@ const serviceSchema = new mongoose.Schema({
     enum: ["per_day", "fixed", "per_unit"]
   },
 
+  role: {
+  type: String,
+  enum: [
+    "traditional_photographer",
+    "traditional_videographer",
+    "candid_photographer",
+    "cinematographer",
+    "drone"
+  ]
+},
+
   price: Number
 });
 
