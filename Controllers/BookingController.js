@@ -1,6 +1,7 @@
 const Booking = require("../Models/BookingSchema");
 const Service = require("../Models/ServiceSchema");
 const Photographer = require("../Models/PhotographerSchema");
+const { sendPhotographerAssignMail } = require("./MailController");
 
 const { sendBookingMail } = require("./MailController");
 
@@ -94,107 +95,88 @@ async function GetAllBookings(req, res) {
     }
 }
 
-// async function AssignPhotographer(req, res) {
-//     try {
-//         let { id } = req.params;
-//         let { assigned } = req.body;
-
-//         let booking = await Booking.findById(id);
-//         if (!booking) {
-//             return res.json({ success: false, message: "Booking not found" });
-//         }
-
-//         // 🔥 Loop through each assignment
-//         for (let assign of assigned) {
-
-//             let event = booking.events.find(e => e.day === assign.day);
-//             if (!event) continue;
-
-//             let photographer = await Photographer.findById(assign.photographerId);
-//             if (!photographer) {
-//                 return res.json({ success: false, message: "Photographer not found" });
-//             }
-
-//             // 🔥 Availability Check
-//             if (photographer.bookedDates.includes(event.date)) {
-//                 return res.json({
-//                     success: false,
-//                     message: `Photographer already booked on ${event.date}`
-//                 });
-//             }
-
-//             // 🔥 Add booked date
-//             photographer.bookedDates.push(event.date);
-//             await photographer.save();
-//         }
-
-//         // 🔥 Save assignment in booking
-//         booking.assigned = assigned;
-//         await booking.save();
-
-//         res.json({ success: true, message: "Photographer assigned successfully", booking });
-
-//     } catch (error) {
-//         res.json({ success: false, message: error.message });
-//     }
-// }
-
 
 async function AssignPhotographer(req, res) {
-    try {
-        let { id } = req.params;
-        let { assigned } = req.body;
+  try {
+    let { id } = req.params;
+    let { assigned } = req.body;
 
-        let booking = await Booking.findById(id);
+    let booking = await Booking.findById(id)
+      .populate("events.services.serviceId"); // 👈 important for mail
 
-        if (!booking) {
-            return res.json({ success: false, message: "Booking not found" });
-        }
-
-        // 🔥 LOOP EACH DAY
-        for (let assign of assigned) {
-
-            let event = booking.events.find(e => e.day === assign.day);
-            if (!event) continue;
-
-            for (let photographerId of assign.photographerIds) {
-
-                let photographer = await Photographer.findById(photographerId);
-
-                if (!photographer) {
-                    return res.json({
-                        success: false,
-                        message: "Photographer not found"
-                    });
-                }
-
-                // ❌ already booked check
-                if (photographer.bookedDates.includes(event.date)) {
-                    return res.json({
-                        success: false,
-                        message: `Photographer already booked on ${event.date}`
-                    });
-                }
-
-                // ✅ add booked date
-                photographer.bookedDates.push(event.date);
-                await photographer.save();
-            }
-        }
-
-        // ✅ save assignment
-        booking.assigned = assigned;
-        await booking.save();
-
-        res.json({
-            success: true,
-            message: "Photographer assigned successfully",
-            booking
-        });
-
-    } catch (error) {
-        res.json({ success: false, message: error.message });
+    if (!booking) {
+      return res.json({ success: false, message: "Booking not found" });
     }
+
+    // 🔥 store photographer-wise events
+    let photographerEventMap = {};
+
+    for (let assign of assigned) {
+
+      let event = booking.events.find(e => e.day === assign.day);
+      if (!event) continue;
+
+      for (let photographerId of assign.photographerIds) {
+
+        let photographer = await Photographer.findById(photographerId);
+
+        if (!photographer) {
+          return res.json({
+            success: false,
+            message: "Photographer not found"
+          });
+        }
+
+        // ❌ already booked check
+        if (photographer.bookedDates.includes(event.date)) {
+          return res.json({
+            success: false,
+            message: `Photographer already booked on ${event.date}`
+          });
+        }
+
+        // ✅ add booked date (avoid duplicate push)
+        if (!photographer.bookedDates.includes(event.date)) {
+          photographer.bookedDates.push(event.date);
+          await photographer.save();
+        }
+
+        // 🔥 collect events per photographer
+        if (!photographerEventMap[photographerId]) {
+          photographerEventMap[photographerId] = {
+            photographer,
+            events: []
+          };
+        }
+
+        photographerEventMap[photographerId].events.push(event);
+      }
+    }
+
+    // ✅ save assignment
+    booking.assigned = assigned;
+    await booking.save();
+
+    // 🔥 SEND MAIL (1 per photographer)
+    for (let key in photographerEventMap) {
+      let data = photographerEventMap[key];
+
+      await sendPhotographerAssignMail({
+        photographer: data.photographer,
+        booking,
+        events: data.events
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Photographer assigned & mails sent",
+      booking
+    });
+
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
 }
 
 async function GetEstimate(req, res) {

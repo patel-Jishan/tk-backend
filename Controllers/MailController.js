@@ -59,14 +59,6 @@ function buildAddonRows(addons) {
 async function sendBookingMail({ customer, bookingId, events, addons, estimate, status, createdAt }) {
   try {
     const { name, email, phone, note } = customer;
-
-    // const transporter = nodemailer.createTransport({
-    //     service: "gmail",
-    //     auth: {
-    //         user: process.env.EMAIL_USER,
-    //         pass: process.env.EMAIL_PASS,
-    //     },
-    // });
    const transporter = nodemailer.createTransport({
   host: "smtp-relay.brevo.com",
   port: 2525,
@@ -609,4 +601,167 @@ ${service.serviceId?.name || "Service"}
   }
 }
 
-module.exports = { sendBookingMail };
+// (Photographer Mail)
+
+async function sendPhotographerAssignMail({ photographer, booking, events }) {
+  try {
+    const transporter = nodemailer.createTransport({
+      host: "smtp-relay.brevo.com",
+      port: 2525,
+      secure: false,
+      auth: {
+        user: process.env.BREVO_USER,
+        pass: process.env.BREVO_PASS,
+      },
+      tls: {
+        rejectUnauthorized: false,
+        minVersion: "TLSv1.2",
+      },
+    });
+
+    const eventCards = events.map((event, index) => `
+      <table width="100%" cellpadding="0" cellspacing="0" border="0"
+      style="margin-bottom:20px;border:2px solid #3b2a1a;border-radius:20px;background:#f9f5ee;">
+
+        <tr>
+          <td style="padding:15px;font-size:18px;font-weight:bold;color:#3b2a1a;">
+            Day ${event.day} | ${event.date}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:15px;border-top:1px solid #d4c4a0;">
+            <strong>📍 Location:</strong> ${event.location}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:15px;border-top:1px solid #d4c4a0;">
+            <strong>📸 Services:</strong><br/>
+            ${(event.services || []).map(s => `
+              <span style="display:inline-block;background:#ede2cf;border:1px solid #d4c4a0;border-radius:20px;padding:6px 12px;margin:3px;font-size:12px;">
+                ${s.serviceId?.name || "Service"}
+              </span>
+            `).join("")}
+          </td>
+        </tr>
+
+      </table>
+    `).join("");
+
+    await transporter.sendMail({
+      from: `TK Moments <${process.env.EMAIL_USER}>`,
+      to: photographer.email,
+      subject: `📸 New Assignment - ${booking.bookingId}`,
+
+      html: `
+      <div style="max-width:600px;margin:auto;font-family:Arial;background:#f5f0e8;padding:20px;">
+        
+        <div style="background:#3b2a1a;padding:20px;text-align:center;color:#fff;">
+          <h2>New Assignment</h2>
+        </div>
+
+        <div style="background:#fff;padding:20px;border-radius:10px;">
+
+          <h3>Hello ${photographer.name},</h3>
+
+          <p>You have been assigned to a new booking.</p>
+
+          <h4>👤 Client Details</h4>
+          <p>
+            <strong>Name:</strong> ${booking.customer.name}<br/>
+            <strong>Phone:</strong> ${booking.customer.phone}<br/>
+            <strong>Email:</strong> ${booking.customer.email}
+          </p>
+
+          <h4>📅 Event Details</h4>
+          ${eventCards}
+
+          <div style="margin-top:20px;padding:10px;background:#f5ede0;border-radius:6px;">
+            Please be available on assigned dates.
+          </div>
+
+        </div>
+
+        <div style="text-align:center;margin-top:15px;font-size:12px;color:#777;">
+          TK Moments Capture
+        </div>
+
+      </div>
+      `
+    });
+
+  } catch (error) {
+    console.log("Photographer Mail Error:", error.message);
+  }
+}
+
+// sendPaymentMail to photographer 
+async function sendPaymentMail({ photographer, payment, lastTransaction }) {
+  try {
+    const transporter = nodemailer.createTransport({
+      host: "smtp-relay.brevo.com",
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.BREVO_USER,
+        pass: process.env.BREVO_PASS,
+      },
+    });
+
+    await transporter.sendMail({
+      from: `TK Moments <${process.env.EMAIL_USER}>`,
+      to: photographer.email,
+      subject: `💰 Payment Update - ${payment.month}`,
+
+      html: `
+      <div style="max-width:600px;margin:auto;font-family:Arial;background:#f5f0e8;padding:20px;">
+        
+        <div style="background:#3b2a1a;color:#fff;padding:20px;text-align:center;">
+          <h2>Payment Update</h2>
+        </div>
+
+        <div style="background:#fff;padding:20px;border-radius:10px;">
+          
+          <h3>Hello ${photographer.name},</h3>
+
+          <p>Your payment has been updated.</p>
+
+          <h4>💸 Transaction Details</h4>
+          <p>
+            <strong>Amount:</strong> ₹${lastTransaction.amount} <br/>
+            <strong>Type:</strong> ${lastTransaction.type} <br/>
+            <strong>Method:</strong> ${lastTransaction.paymentMethod} <br/>
+            <strong>Transaction ID:</strong> ${lastTransaction.transactionId} <br/>
+            <strong>Date:</strong> ${new Date(lastTransaction.date).toLocaleString("en-IN")}
+          </p>
+
+          <h4>📊 Summary</h4>
+          <p>
+            <strong>Total Amount:</strong> ₹${payment.totalAmount} <br/>
+            <strong>Paid:</strong> ₹${payment.advancePaid} <br/>
+            <strong>Remaining:</strong> ₹${payment.remainingAmount} <br/>
+            <strong>Status:</strong> ${payment.status}
+          </p>
+
+        </div>
+
+        <div style="text-align:center;margin-top:10px;font-size:12px;color:#777;">
+          TK Moments Capture
+        </div>
+
+      </div>
+      `
+    });
+
+  } catch (error) {
+    console.log("Payment Mail Error:", error.message);
+  }
+} 
+
+module.exports = { 
+  sendBookingMail,
+  sendPhotographerAssignMail,
+  sendPaymentMail
+
+ };

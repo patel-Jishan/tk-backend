@@ -1,5 +1,6 @@
 const Photographer = require("../Models/PhotographerSchema");
 const PhotographerPayment = require("../Models/PhotographerPaymentSchema");
+const { sendPaymentMail } = require("./MailController");
 const mongoose = require("mongoose");
 
 // ✅ CREATE / UPDATE PAYMENT
@@ -87,7 +88,19 @@ async function UpdatePayment(req, res) {
 
     payment.note = note;
 
-    await payment.save();
+// ✅ SAVE FIRST
+await payment.save();
+
+// 🔥 MAIL ONLY IF PAYMENT ADDED
+if (amountPaid > 0) {
+  let lastTransaction = payment.transactions[payment.transactions.length - 1];
+
+  await sendPaymentMail({
+    photographer,
+    payment,
+    lastTransaction
+  });
+}
 
     res.json({
       success: true,
