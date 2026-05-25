@@ -1,53 +1,88 @@
 const mongoose = require("mongoose");
 
+// 🔥 Transaction Schema
 const transactionSchema = new mongoose.Schema({
-  amount: Number,
+  amount: {
+    type: Number,
+    required: true
+  },
+
   transactionId: String,
+
   paymentMethod: {
     type: String,
     enum: ["cash", "upi", "bank"]
   },
+
   type: {
     type: String,
-    enum: ["advance", "remaining"]
+    enum: ["advance", "remaining"],
+    default: "advance"
   },
+
   date: {
     type: Date,
     default: Date.now
   }
 });
 
+// 🔥 Main Payment Schema
 const photographerPaymentSchema = new mongoose.Schema({
+  
   photographerId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Photographer"
+    ref: "Photographer",
+    required: true
   },
 
-  month: String, // "2026-05"
+  month: {
+    type: String, // "2026-05"
+    required: true
+  },
 
   totalDays: Number,
   perDayRate: Number,
 
-  totalAmount: Number,
+  totalAmount: {
+    type: Number,
+    required: true
+  },
 
+  // ✅ kitna pay hua
   advancePaid: {
     type: Number,
     default: 0
   },
 
-  remainingAmount: Number,
+  // ✅ kitna baki hai
+  remainingAmount: {
+    type: Number,
+    default: 0
+  },
+
+  // 🔥 NEW (VERY IMPORTANT)
+  // 👉 extra jo next month carry hoga
+  extraPaid: {
+    type: Number,
+    default: 0
+  },
+
+  carryForward: {
+  type: Number,
+  default: 0
+},
 
   status: {
     type: String,
-    enum: ["pending", "partial", "paid", "overdue"], // ✅ added overdue
+    enum: ["pending", "partial", "paid", "overdue"],
     default: "pending"
   },
 
-  transactions: [transactionSchema], // ✅ NEW
+  transactions: [transactionSchema],
 
   note: String,
 
-  dueDate: Date // optional but useful
+  dueDate: Date
 
 }, { timestamps: true });
 

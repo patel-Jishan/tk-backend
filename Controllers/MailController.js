@@ -707,6 +707,10 @@ async function sendPaymentMail({ photographer, payment, lastTransaction }) {
         user: process.env.BREVO_USER,
         pass: process.env.BREVO_PASS,
       },
+      tls: {
+        rejectUnauthorized: false,
+        minVersion: "TLSv1.2",
+      },
     });
 
     await transporter.sendMail({
@@ -715,40 +719,26 @@ async function sendPaymentMail({ photographer, payment, lastTransaction }) {
       subject: `💰 Payment Update - ${payment.month}`,
 
       html: `
-      <div style="max-width:600px;margin:auto;font-family:Arial;background:#f5f0e8;padding:20px;">
-        
-        <div style="background:#3b2a1a;color:#fff;padding:20px;text-align:center;">
-          <h2>Payment Update</h2>
-        </div>
+      <div style="font-family:Arial;padding:20px">
 
-        <div style="background:#fff;padding:20px;border-radius:10px;">
-          
-          <h3>Hello ${photographer.name},</h3>
+        <h2>Hello ${photographer.name}</h2>
 
-          <p>Your payment has been updated.</p>
+        <p><strong>Month:</strong> ${payment.month}</p>
 
-          <h4>💸 Transaction Details</h4>
-          <p>
-            <strong>Amount:</strong> ₹${lastTransaction.amount} <br/>
-            <strong>Type:</strong> ${lastTransaction.type} <br/>
-            <strong>Method:</strong> ${lastTransaction.paymentMethod} <br/>
-            <strong>Transaction ID:</strong> ${lastTransaction.transactionId} <br/>
-            <strong>Date:</strong> ${new Date(lastTransaction.date).toLocaleString("en-IN")}
-          </p>
+        <h3>Transaction</h3>
+        <p>
+          Amount: ₹${lastTransaction.amount} <br/>
+          Date: ${new Date(lastTransaction.date).toLocaleString("en-IN")}
+        </p>
 
-          <h4>📊 Summary</h4>
-          <p>
-            <strong>Total Amount:</strong> ₹${payment.totalAmount} <br/>
-            <strong>Paid:</strong> ₹${payment.advancePaid} <br/>
-            <strong>Remaining:</strong> ₹${payment.remainingAmount} <br/>
-            <strong>Status:</strong> ${payment.status}
-          </p>
-
-        </div>
-
-        <div style="text-align:center;margin-top:10px;font-size:12px;color:#777;">
-          TK Moments Capture
-        </div>
+        <h3>Summary</h3>
+        <p>
+          Total: ₹${payment.totalAmount} <br/>
+          Paid: ₹${payment.advancePaid} <br/>
+          Remaining: ₹${payment.remainingAmount} <br/>
+          Extra (Carry Forward): ₹${payment.extraPaid} <br/>
+          Status: ${payment.status}
+        </p>
 
       </div>
       `
@@ -757,7 +747,8 @@ async function sendPaymentMail({ photographer, payment, lastTransaction }) {
   } catch (error) {
     console.log("Payment Mail Error:", error.message);
   }
-} 
+}
+
 
 module.exports = { 
   sendBookingMail,

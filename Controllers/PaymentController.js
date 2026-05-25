@@ -1,9 +1,25 @@
-const Photographer = require("../Models/PhotographerSchema");
-const PhotographerPayment = require("../Models/PhotographerPaymentSchema");
-const { sendPaymentMail } = require("./MailController");
+// const Photographer = require("../Models/PhotographerSchema");
+// const PhotographerPayment = require("../Models/PhotographerPaymentSchema");
+// const { sendPaymentMail } = require("./MailController");
 const mongoose = require("mongoose");
 
 // ✅ CREATE / UPDATE PAYMENT
+const Photographer = require("../Models/PhotographerSchema");
+const PhotographerPayment = require("../Models/PhotographerPaymentSchema");
+const { sendPaymentMail } = require("./MailController");
+
+function getPreviousMonth(month) {
+  let [year, m] = month.split("-").map(Number);
+  m -= 1;
+
+  if (m === 0) {
+    m = 12;
+    year -= 1;
+  }
+
+  return `${year}-${m.toString().padStart(2, "0")}`;
+}
+
 async function UpdatePayment(req, res) {
   try {
     let {
@@ -14,7 +30,7 @@ async function UpdatePayment(req, res) {
       transactionId,
       paymentMethod,
       note,
-      type = "advance" // advance / remaining
+      type = "advance"
     } = req.body;
 
     let photographer = await Photographer.findById(photographerId);
@@ -23,6 +39,7 @@ async function UpdatePayment(req, res) {
       return res.json({ success: false, message: "Photographer not found" });
     }
 
+    // 🔥 count working days
     let totalDays = photographer.bookedDates.filter(date =>
       date.startsWith(month)
     ).length;
@@ -41,6 +58,17 @@ async function UpdatePayment(req, res) {
       month
     });
 
+    // 🔥 GET PREVIOUS MONTH EXTRA
+    let previousMonth = getPreviousMonth(month);
+
+    let previousPayment = await PhotographerPayment.findOne({
+      photographerId,
+      month: previousMonth
+    });
+
+    let carryForward = previousPayment?.extraPaid || 0;
+
+    // 🔥 CREATE NEW PAYMENT
     if (!payment) {
       payment = new PhotographerPayment({
         photographerId,
@@ -48,8 +76,10 @@ async function UpdatePayment(req, res) {
         totalDays,
         perDayRate,
         totalAmount,
-        advancePaid: 0,
-        remainingAmount: totalAmount,
+        carryForward,
+        advancePaid: carryForward,
+        remainingAmount: totalAmount - carryForward,
+        extraPaid: 0,
         transactions: []
       });
     }
@@ -66,10 +96,17 @@ async function UpdatePayment(req, res) {
       payment.advancePaid += amountPaid;
     }
 
-    // 🔥 UPDATE CALCULATIONS
-    payment.remainingAmount = payment.totalAmount - payment.advancePaid;
+    // 🔥 OVERPAY LOGIC
+    if (payment.advancePaid > payment.totalAmount) {
+      payment.extraPaid = payment.advancePaid - payment.totalAmount;
+      payment.advancePaid = payment.totalAmount;
+      payment.remainingAmount = 0;
+    } else {
+      payment.extraPaid = 0;
+      payment.remainingAmount = payment.totalAmount - payment.advancePaid;
+    }
 
-    // 🔥 STATUS LOGIC
+    // 🔥 STATUS
     if (payment.advancePaid === 0) {
       payment.status = "pending";
     } else if (payment.remainingAmount > 0) {
@@ -78,7 +115,7 @@ async function UpdatePayment(req, res) {
       payment.status = "paid";
     }
 
-    // 🔥 OVERDUE LOGIC (simple)
+    // 🔥 OVERDUE
     let today = new Date();
     let paymentMonthEnd = new Date(month + "-31");
 
@@ -88,19 +125,18 @@ async function UpdatePayment(req, res) {
 
     payment.note = note;
 
-// ✅ SAVE FIRST
-await payment.save();
+    await payment.save();
 
-// 🔥 MAIL ONLY IF PAYMENT ADDED
-if (amountPaid > 0) {
-  let lastTransaction = payment.transactions[payment.transactions.length - 1];
+    // 🔥 SEND MAIL
+    if (amountPaid > 0) {
+      let lastTransaction = payment.transactions[payment.transactions.length - 1];
 
-  await sendPaymentMail({
-    photographer,
-    payment,
-    lastTransaction
-  });
-}
+      await sendPaymentMail({
+        photographer,
+        payment,
+        lastTransaction
+      });
+    }
 
     res.json({
       success: true,
