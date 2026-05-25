@@ -74,6 +74,50 @@ const bookingSchema = new mongoose.Schema(
       type: String,
       enum: ["pending", "confirmed", "cancelled"],
       default: "pending"
+    },
+
+    workStatus: {
+      type: String,
+      enum: [
+        "pending",
+        "editing",
+        "edited",
+        "delivery_pending",
+        "delivered"
+      ],
+      default: "pending"
+    },
+
+
+    payment: {
+      totalAmount: Number,     // estimate copy
+      paidAmount: {
+        type: Number,
+        default: 0
+      },
+      remainingAmount: Number,
+
+      status: {
+        type: String,
+        enum: ["pending", "partial", "completed"],
+        default: "pending"
+      },
+
+      history: [
+        {
+          amount: Number,
+          transactionId: String,
+          paymentMethod: {
+            type: String,
+            enum: ["cash", "upi", "bank"]
+          },
+          date: {
+            type: Date,
+            default: Date.now
+          },
+          note: String
+        }
+      ]
     }
   },
   { timestamps: true }

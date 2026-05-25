@@ -1,7 +1,7 @@
 const Booking = require("../Models/BookingSchema");
 const Service = require("../Models/ServiceSchema");
 const Photographer = require("../Models/PhotographerSchema");
-const { sendPhotographerAssignMail } = require("./MailController");
+const { sendPhotographerAssignMail, sendWorkStatusMail, sendPaymentMail, sendPaymentMailToCustomer } = require("./MailController");
 
 const { sendBookingMail } = require("./MailController");
 
@@ -49,7 +49,14 @@ async function CreateBooking(req, res) {
             events,
             addons,
             estimate,
-            type   // 🔥 NEW FIELD
+            
+            payment: {
+                totalAmount: estimate,
+                paidAmount: 0,
+                remainingAmount: estimate,
+                status: "pending"
+            },
+            type
         });
 
         // 🔥 MAIL ONLY IF BOOKING CONFIRMED
@@ -220,9 +227,106 @@ async function GetEstimate(req, res) {
     }
 }
 
+
+
+
+
+async function UpdateWorkStatus(req, res) {
+    try {
+        let { id } = req.params;
+        let { workStatus } = req.body;
+
+        let booking = await Booking.findById(id);
+
+        if (!booking) {
+            return res.json({ success: false, message: "Booking not found" });
+        }
+
+        booking.workStatus = workStatus;
+        await booking.save();
+
+        // 🔥 MAIL SEND
+        await sendWorkStatusMail({
+            customer: booking.customer,
+            bookingId: booking.bookingId,
+            workStatus
+        });
+
+        res.json({
+            success: true,
+            message: "Work status updated",
+            booking
+        });
+
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+}
+
+
+
+async function UpdateClientPayment(req, res) {
+    try {
+        let { id } = req.params;
+        let { amount, transactionId, paymentMethod, note } = req.body;
+
+        let booking = await Booking.findById(id);
+
+        if (!booking) {
+            return res.json({ success: false, message: "Booking not found" });
+        }
+
+        // 🔥 ADD PAYMENT
+        booking.payment.paidAmount += amount;
+        booking.payment.remainingAmount =
+            booking.payment.totalAmount - booking.payment.paidAmount;
+
+        // 🔥 STATUS LOGIC
+        if (booking.payment.paidAmount === 0) {
+            booking.payment.status = "pending";
+        } else if (booking.payment.remainingAmount > 0) {
+            booking.payment.status = "partial";
+        } else {
+            booking.payment.status = "completed";
+        }
+
+        // 🔥 HISTORY
+        booking.payment.history.push({
+            amount,
+            transactionId,
+            paymentMethod,
+            note
+        });
+
+        await booking.save();
+
+        // 🔥 MAIL SEND
+        let lastTransaction =
+            booking.payment.history[booking.payment.history.length - 1];
+
+        await sendPaymentMailToCustomer({
+            customer: booking.customer,
+            booking,
+            transaction: lastTransaction
+        });
+
+        res.json({
+            success: true,
+            message: "Payment updated",
+            booking
+        });
+
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+}
+
+
 module.exports = {
     CreateBooking,
     GetAllBookings,
     AssignPhotographer,
-    GetEstimate
+    GetEstimate,
+    UpdateWorkStatus,
+    UpdateClientPayment
 };

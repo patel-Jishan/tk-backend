@@ -59,29 +59,29 @@ function buildAddonRows(addons) {
 async function sendBookingMail({ customer, bookingId, events, addons, estimate, status, createdAt }) {
   try {
     const { name, email, phone, note } = customer;
-   const transporter = nodemailer.createTransport({
-  host: "smtp-relay.brevo.com",
-  port: 2525,
-  secure: false,
-  auth: {
-    user: process.env.BREVO_USER,
-    pass: process.env.BREVO_PASS,
-  },
-  family: 4, 
-  debug: true,
+    const transporter = nodemailer.createTransport({
+      host: "smtp-relay.brevo.com",
+      port: 2525,
+      secure: false,
+      auth: {
+        user: process.env.BREVO_USER,
+        pass: process.env.BREVO_PASS,
+      },
+      family: 4,
+      debug: true,
       tls: {
-    rejectUnauthorized: false,
-    minVersion: "TLSv1.2",
-  },
-});
+        rejectUnauthorized: false,
+        minVersion: "TLSv1.2",
+      },
+    });
 
     transporter.verify((error, success) => {
-  if (error) {
-    console.log("SMTP Error:", error);
-  } else {
-    console.log("SMTP Server Ready");
-  }
-});
+      if (error) {
+        console.log("SMTP Error:", error);
+      } else {
+        console.log("SMTP Server Ready");
+      }
+    });
     const eventRowsWithServices = buildEventRows(events, true);
     const eventRowsWithoutServices = buildEventRows(events, false);
     const addonRows = buildAddonRows(addons);
@@ -719,29 +719,66 @@ async function sendPaymentMail({ photographer, payment, lastTransaction }) {
       subject: `💰 Payment Update - ${payment.month}`,
 
       html: `
-      <div style="font-family:Arial;padding:20px">
+<div style="max-width:600px;margin:auto;font-family:Arial,sans-serif;background:#f3f4f6;padding:20px">
 
-        <h2>Hello ${photographer.name}</h2>
+  <div style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.08)">
 
-        <p><strong>Month:</strong> ${payment.month}</p>
+    <!-- Header -->
+    <div style="background:#111827;padding:18px;text-align:center;color:#fff;">
+      <h2 style="margin:0;">Payment Update</h2>
+      <p style="margin:5px 0 0;font-size:13px;color:#d1d5db">${payment.month}</p>
+    </div>
 
-        <h3>Transaction</h3>
-        <p>
-          Amount: ₹${lastTransaction.amount} <br/>
-          Date: ${new Date(lastTransaction.date).toLocaleString("en-IN")}
+    <!-- Body -->
+    <div style="padding:20px">
+
+      <p style="font-size:15px;color:#111827;">Hello ${photographer.name},</p>
+
+      <!-- Transaction -->
+      <div style="background:#f9fafb;border-left:4px solid #3b82f6;padding:12px;border-radius:6px;margin-top:15px">
+        <strong style="color:#111827">Transaction</strong>
+        <p style="margin:5px 0 0;font-size:14px;color:#4b5563">
+          ₹${lastTransaction.amount} received<br/>
+          ${new Date(lastTransaction.date).toLocaleString("en-IN")}
         </p>
+      </div>
 
-        <h3>Summary</h3>
-        <p>
-          Total: ₹${payment.totalAmount} <br/>
-          Paid: ₹${payment.advancePaid} <br/>
-          Remaining: ₹${payment.remainingAmount} <br/>
-          Extra (Carry Forward): ₹${payment.extraPaid} <br/>
-          Status: ${payment.status}
-        </p>
+      <!-- Summary -->
+      <div style="margin-top:20px">
+        <strong style="color:#111827">Summary</strong>
+
+        <div style="margin-top:10px;font-size:14px;color:#4b5563;line-height:1.7">
+          <div>Total: ₹${payment.totalAmount}</div>
+          <div>Paid: ₹${payment.advancePaid}</div>
+          <div>Remaining: ₹${payment.remainingAmount}</div>
+          <div style="color:#2563eb;">Extra: ₹${payment.extraPaid}</div>
+        </div>
+
+        <div style="margin-top:10px">
+          <span style="
+            padding:6px 12px;
+            background:${payment.status === "paid" ? "#dcfce7" : "#fef3c7"};
+            color:${payment.status === "paid" ? "#166534" : "#92400e"};
+            border-radius:20px;
+            font-size:12px;
+            font-weight:bold;
+          ">
+            ${payment.status.toUpperCase()}
+          </span>
+        </div>
 
       </div>
-      `
+
+    </div>
+
+  </div>
+
+  <p style="text-align:center;font-size:12px;color:#9ca3af;margin-top:15px">
+    TK Moments Capture
+  </p>
+
+</div>
+`
     });
 
   } catch (error) {
@@ -750,9 +787,182 @@ async function sendPaymentMail({ photographer, payment, lastTransaction }) {
 }
 
 
-module.exports = { 
+
+
+async function sendWorkStatusMail({ customer, bookingId, workStatus }) {
+  try {
+    const transporter = nodemailer.createTransport({
+      host: "smtp-relay.brevo.com",
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.BREVO_USER,
+        pass: process.env.BREVO_PASS,
+      },
+      tls: {
+        rejectUnauthorized: false,
+        minVersion: "TLSv1.2",
+      },
+    });
+
+    let messageMap = {
+      pending: "Your booking is received and will start soon.",
+      editing: "Your photos are currently being edited.",
+      edited: "Your photos editing is completed.",
+      delivery_pending: "Your delivery is being prepared.",
+      delivered: "Your final photos have been delivered."
+    };
+
+    await transporter.sendMail({
+      from: `TK Moments <${process.env.EMAIL_USER}>`,
+      to: customer.email,
+      subject: `📸 Work Update - ${bookingId}`,
+      html: `
+<div style="max-width:600px;margin:auto;font-family:Arial,sans-serif;background:#f3f4f6;padding:20px">
+
+  <div style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.08)">
+
+    <!-- Header -->
+    <div style="background:#7c3aed;padding:18px;text-align:center;color:#fff;">
+      <h2 style="margin:0;">Work Update</h2>
+      <p style="margin:5px 0 0;font-size:13px;color:#ddd6fe">${bookingId}</p>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:20px">
+
+      <p style="font-size:15px;color:#111827;">Hello ${customer.name},</p>
+
+      <p style="font-size:14px;color:#4b5563;margin-top:10px">
+        ${messageMap[workStatus]}
+      </p>
+
+      <!-- Status Box -->
+      <div style="
+        margin-top:20px;
+        padding:14px;
+        background:#f9fafb;
+        border-radius:8px;
+        border-left:4px solid #7c3aed;
+      ">
+        <strong>Status:</strong> ${workStatus}
+      </div>
+
+    </div>
+
+  </div>
+
+  <p style="text-align:center;font-size:12px;color:#9ca3af;margin-top:15px">
+    Thank you for choosing TK Moments Capture
+  </p>
+
+</div>
+`
+    });
+
+  } catch (error) {
+    console.log("Work Status Mail Error:", error.message);
+  }
+}
+
+
+
+async function sendPaymentMailToCustomer({ customer, booking, transaction }) {
+  try {
+    const transporter = nodemailer.createTransport({
+      host: "smtp-relay.brevo.com",
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.BREVO_USER,
+        pass: process.env.BREVO_PASS,
+      },
+      tls: {
+        rejectUnauthorized: false,
+        minVersion: "TLSv1.2",
+      },
+    });
+
+    await transporter.sendMail({
+      from: `TK Moments <${process.env.EMAIL_USER}>`,
+      to: customer.email,
+      subject: `💰 Payment Update - ${booking.bookingId}`,
+html: `
+<div style="max-width:600px;margin:auto;font-family:Arial,sans-serif;background:#f3f4f6;padding:20px">
+
+  <div style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.08)">
+
+    <!-- Header -->
+    <div style="background:#059669;padding:18px;text-align:center;color:#fff;">
+      <h2 style="margin:0;">Payment Received</h2>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:20px">
+
+      <p style="font-size:15px;color:#111827;">Hello ${customer.name},</p>
+
+      <p style="font-size:14px;color:#4b5563">
+        Your payment has been successfully received.
+      </p>
+
+      <!-- Transaction -->
+      <div style="background:#ecfdf5;border-left:4px solid #10b981;padding:12px;border-radius:6px;margin-top:15px">
+        <strong>Transaction</strong>
+        <p style="margin-top:5px;font-size:14px;color:#065f46">
+          ₹${transaction.amount} via ${transaction.paymentMethod}<br/>
+          ${new Date(transaction.date).toLocaleString("en-IN")}
+        </p>
+      </div>
+
+      <!-- Summary -->
+      <div style="margin-top:20px">
+        <strong>Summary</strong>
+
+        <div style="margin-top:10px;font-size:14px;color:#4b5563;line-height:1.7">
+          <div>Total: ₹${booking.payment.totalAmount}</div>
+          <div>Paid: ₹${booking.payment.paidAmount}</div>
+          <div>Remaining: ₹${booking.payment.remainingAmount}</div>
+        </div>
+
+        <div style="margin-top:10px">
+          <span style="
+            padding:6px 12px;
+            background:${booking.payment.status === "completed" ? "#dcfce7" : "#fef3c7"};
+            color:${booking.payment.status === "completed" ? "#166534" : "#92400e"};
+            border-radius:20px;
+            font-size:12px;
+            font-weight:bold;
+          ">
+            ${booking.payment.status.toUpperCase()}
+          </span>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <p style="text-align:center;font-size:12px;color:#9ca3af;margin-top:15px">
+    TK Moments Capture
+  </p>
+
+</div>
+`
+    });
+
+  } catch (error) {
+    console.log("Client Payment Mail Error:", error.message);
+  }
+}
+
+
+module.exports = {
   sendBookingMail,
   sendPhotographerAssignMail,
-  sendPaymentMail
+  sendPaymentMail,
+  sendWorkStatusMail,
+  sendPaymentMailToCustomer
 
- };
+};

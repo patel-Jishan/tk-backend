@@ -4,6 +4,8 @@ const {
     CreateBooking,
     AssignPhotographer,
     GetEstimate,
+    UpdateWorkStatus,
+    UpdateClientPayment,
     // GetAllBookings
 } = require('../Controllers/BookingController');
 
@@ -14,6 +16,9 @@ router.post("/", CreateBooking);
 router.patch("/assign/:id", Auth("admin"), AssignPhotographer);
 router.post("/estimate", GetEstimate);
 
+
+router.post("/work-status/:id", UpdateWorkStatus);
+router.post("/payment/:id", UpdateClientPayment);
 
 
 module.exports = router;
