@@ -1,9 +1,11 @@
 const Photographer = require("../Models/PhotographerSchema");
+const PhotographerPayment = require("../Models/PhotographerPaymentSchema");
 const cloudinary = require("../Config/cloudinary");
 
 async function CreatePhotographer(req, res) {
     try {
-        let { name, email, phone, city, role } = req.body;
+        // let { name, email, phone, city, role } = req.body;
+        let { name, email, phone, city, role, perDayRate } = req.body;
 
         let avatarData = {};
 
@@ -22,6 +24,7 @@ async function CreatePhotographer(req, res) {
             };
         }
 
+
         // 🔥 Save Photographer
         let photographer = await Photographer.create({
             name,
@@ -29,6 +32,7 @@ async function CreatePhotographer(req, res) {
             phone,
             city,
             role,
+            perDayRate,
             avatar: avatarData
         });
 
@@ -87,7 +91,20 @@ async function UpdatePhotographer(req, res) {
                 public_id: result.public_id
             };
         }
+        // 🔥 check if any payment exists for current month
+        let currentMonth = new Date().toISOString().slice(0, 7);
 
+        let existingPayment = await PhotographerPayment.findOne({
+            photographerId: id,
+            month: currentMonth
+        });
+
+        if (existingPayment && req.body.perDayRate) {
+            return res.json({
+                success: false,
+                message: "Cannot change rate. Already used in current month"
+            });
+        }
         let updated = await Photographer.findByIdAndUpdate(
             id,
             updateData,

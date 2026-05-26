@@ -20,12 +20,140 @@ function getPreviousMonth(month) {
   return `${year}-${m.toString().padStart(2, "0")}`;
 }
 
+// async function UpdatePayment(req, res) {
+//   try {
+//     let {
+//       photographerId,
+//       month,
+//       perDayRate,
+//       amountPaid = 0,
+//       transactionId,
+//       paymentMethod,
+//       note,
+//       type = "advance"
+//     } = req.body;
+
+//     let photographer = await Photographer.findById(photographerId);
+
+//     if (!photographer) {
+//       return res.json({ success: false, message: "Photographer not found" });
+//     }
+
+//     // 🔥 count working days
+//     let totalDays = photographer.bookedDates.filter(date =>
+//       date.startsWith(month)
+//     ).length;
+
+//     if (totalDays === 0) {
+//       return res.json({
+//         success: false,
+//         message: "No work in this month"
+//       });
+//     }
+
+//     let totalAmount = totalDays * perDayRate;
+
+//     let payment = await PhotographerPayment.findOne({
+//       photographerId,
+//       month
+//     });
+
+//     // 🔥 GET PREVIOUS MONTH EXTRA
+//     let previousMonth = getPreviousMonth(month);
+
+//     let previousPayment = await PhotographerPayment.findOne({
+//       photographerId,
+//       month: previousMonth
+//     });
+
+//     let carryForward = previousPayment?.extraPaid || 0;
+
+//     // 🔥 CREATE NEW PAYMENT
+//     if (!payment) {
+//       payment = new PhotographerPayment({
+//         photographerId,
+//         month,
+//         totalDays,
+//         perDayRate,
+//         totalAmount,
+//         carryForward,
+//         advancePaid: carryForward,
+//         remainingAmount: totalAmount - carryForward,
+//         extraPaid: 0,
+//         transactions: []
+//       });
+//     }
+
+//     // 🔥 ADD TRANSACTION
+//     if (amountPaid > 0) {
+//       payment.transactions.push({
+//         amount: amountPaid,
+//         transactionId,
+//         paymentMethod,
+//         type
+//       });
+
+//       payment.advancePaid += amountPaid;
+//     }
+
+//     // 🔥 OVERPAY LOGIC
+//     if (payment.advancePaid > payment.totalAmount) {
+//       payment.extraPaid = payment.advancePaid - payment.totalAmount;
+//       payment.advancePaid = payment.totalAmount;
+//       payment.remainingAmount = 0;
+//     } else {
+//       payment.extraPaid = 0;
+//       payment.remainingAmount = payment.totalAmount - payment.advancePaid;
+//     }
+
+//     // 🔥 STATUS
+//     if (payment.advancePaid === 0) {
+//       payment.status = "pending";
+//     } else if (payment.remainingAmount > 0) {
+//       payment.status = "partial";
+//     } else {
+//       payment.status = "paid";
+//     }
+
+//     // 🔥 OVERDUE
+//     let today = new Date();
+//     let paymentMonthEnd = new Date(month + "-31");
+
+//     if (payment.status !== "paid" && today > paymentMonthEnd) {
+//       payment.status = "overdue";
+//     }
+
+//     payment.note = note;
+
+//     await payment.save();
+
+//     // 🔥 SEND MAIL
+//     if (amountPaid > 0) {
+//       let lastTransaction = payment.transactions[payment.transactions.length - 1];
+
+//       await sendPaymentMail({
+//         photographer,
+//         payment,
+//         lastTransaction
+//       });
+//     }
+
+//     res.json({
+//       success: true,
+//       message: "Payment updated",
+//       payment
+//     });
+
+//   } catch (error) {
+//     res.json({ success: false, message: error.message });
+//   }
+// }
+
 async function UpdatePayment(req, res) {
   try {
     let {
       photographerId,
       month,
-      perDayRate,
       amountPaid = 0,
       transactionId,
       paymentMethod,
@@ -39,6 +167,9 @@ async function UpdatePayment(req, res) {
       return res.json({ success: false, message: "Photographer not found" });
     }
 
+    // 🔥 ALWAYS GET CURRENT RATE FROM PHOTOGRAPHER
+    let currentRate = photographer.perDayRate;
+
     // 🔥 count working days
     let totalDays = photographer.bookedDates.filter(date =>
       date.startsWith(month)
@@ -51,14 +182,22 @@ async function UpdatePayment(req, res) {
       });
     }
 
-    let totalAmount = totalDays * perDayRate;
-
     let payment = await PhotographerPayment.findOne({
       photographerId,
       month
     });
 
-    // 🔥 GET PREVIOUS MONTH EXTRA
+    // 🔥 ❌ RATE LOCK CHECK
+    if (payment && payment.perDayRate !== currentRate) {
+      return res.json({
+        success: false,
+        message: "Rate already locked for this month"
+      });
+    }
+
+    let totalAmount = totalDays * currentRate;
+
+    // 🔥 PREVIOUS MONTH
     let previousMonth = getPreviousMonth(month);
 
     let previousPayment = await PhotographerPayment.findOne({
@@ -68,13 +207,13 @@ async function UpdatePayment(req, res) {
 
     let carryForward = previousPayment?.extraPaid || 0;
 
-    // 🔥 CREATE NEW PAYMENT
+    // ✅ CREATE (ONLY TIME RATE SET HOGA)
     if (!payment) {
       payment = new PhotographerPayment({
         photographerId,
         month,
         totalDays,
-        perDayRate,
+        perDayRate: currentRate, // 🔥 LOCKED HERE
         totalAmount,
         carryForward,
         advancePaid: carryForward,
@@ -84,7 +223,21 @@ async function UpdatePayment(req, res) {
       });
     }
 
-    // 🔥 ADD TRANSACTION
+    // 🔥 DUPLICATE TRANSACTION
+    if (transactionId) {
+      let exists = payment.transactions.find(
+        t => t.transactionId === transactionId
+      );
+
+      if (exists) {
+        return res.json({
+          success: false,
+          message: "Duplicate transactionId"
+        });
+      }
+    }
+
+    // 🔥 ADD PAYMENT
     if (amountPaid > 0) {
       payment.transactions.push({
         amount: amountPaid,
@@ -96,7 +249,7 @@ async function UpdatePayment(req, res) {
       payment.advancePaid += amountPaid;
     }
 
-    // 🔥 OVERPAY LOGIC
+    // 🔥 CALCULATION
     if (payment.advancePaid > payment.totalAmount) {
       payment.extraPaid = payment.advancePaid - payment.totalAmount;
       payment.advancePaid = payment.totalAmount;
@@ -115,11 +268,12 @@ async function UpdatePayment(req, res) {
       payment.status = "paid";
     }
 
-    // 🔥 OVERDUE
+    // 🔥 OVERDUE FIX
+    let [year, m] = month.split("-").map(Number);
+    let lastDate = new Date(year, m, 0);
     let today = new Date();
-    let paymentMonthEnd = new Date(month + "-31");
 
-    if (payment.status !== "paid" && today > paymentMonthEnd) {
+    if (payment.status !== "paid" && today > lastDate) {
       payment.status = "overdue";
     }
 
@@ -127,9 +281,10 @@ async function UpdatePayment(req, res) {
 
     await payment.save();
 
-    // 🔥 SEND MAIL
+    // 🔥 MAIL
     if (amountPaid > 0) {
-      let lastTransaction = payment.transactions[payment.transactions.length - 1];
+      let lastTransaction =
+        payment.transactions[payment.transactions.length - 1];
 
       await sendPaymentMail({
         photographer,
@@ -148,7 +303,6 @@ async function UpdatePayment(req, res) {
     res.json({ success: false, message: error.message });
   }
 }
-
 
 // ✅ GET ALL PAYMENTS
 async function GetAllPayments(req, res) {

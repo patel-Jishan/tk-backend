@@ -750,6 +750,7 @@ async function sendPaymentMail({ photographer, payment, lastTransaction }) {
         <div style="margin-top:10px;font-size:14px;color:#4b5563;line-height:1.7">
           <div>Total: ₹${payment.totalAmount}</div>
           <div>Paid: ₹${payment.advancePaid}</div>
+          <div>Carry Forward: ₹${payment.carryForward}</div>
           <div>Remaining: ₹${payment.remainingAmount}</div>
           <div style="color:#2563eb;">Extra: ₹${payment.extraPaid}</div>
         </div>
