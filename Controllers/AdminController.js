@@ -88,7 +88,7 @@ async function GetBookings(req, res) {
         let bookings = await Booking.find({ type: "booking" }) // 🔥 filter
             .populate("events.services.serviceId")
             .populate("addons.serviceId")
-            .populate("assigned.photographerId");
+            .populate("assigned.photographerIds");
 
         res.json({ success: true, bookings });
 
@@ -120,7 +120,7 @@ async function GetSingleBooking(req, res) {
         let booking = await Booking.findById(id)
             .populate("events.services.serviceId")
             .populate("addons.serviceId")
-            .populate("assigned.photographerId");
+            .populate("assigned.photographerIds");
 
         if (!booking) {
             return res.json({ success: false, message: "Booking not found" });
