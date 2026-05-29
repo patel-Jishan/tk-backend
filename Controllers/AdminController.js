@@ -204,7 +204,7 @@ async function LogOut(req,res) {
 
     try{
         res.clearCookie("accessToken", {httpOnly: true, secure: false});
-        res.clearCookie("refreshToken", {htppOnly: true, secure: false});
+        res.clearCookie("refreshToken", {httpOnly: true, secure: false});
         res.json({success: true, message: "Admin logged Out"});
 
 
