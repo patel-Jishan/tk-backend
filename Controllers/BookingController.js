@@ -93,7 +93,7 @@ async function GetAllBookings(req, res) {
         let bookings = await Booking.find()
             .populate("events.services.serviceId")
             .populate("addons.serviceId")
-            .populate("assigned.photographerId");
+            .populate("assigned.photographerIds");
 
         res.json({ success: true, bookings });
 
