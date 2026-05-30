@@ -68,6 +68,7 @@ async function GetPhotographers(req, res) {
 async function UpdatePhotographer(req, res) {
     try {
         let { id } = req.params;
+        let {role} = req.body;
 
         let photographer = await Photographer.findById(id);
         if (!photographer) {
