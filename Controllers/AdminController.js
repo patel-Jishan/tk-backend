@@ -1,4 +1,5 @@
 const Booking = require("../Models/BookingSchema");
+const { sendBookingMail} = require("./MailController")
 const Photographer = require("../Models/PhotographerSchema");
 const Admin = require("../Models/admin.model");
 const jwt = require("jsonwebtoken");
