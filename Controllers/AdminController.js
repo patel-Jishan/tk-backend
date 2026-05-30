@@ -212,8 +212,72 @@ async function LogOut(req,res) {
         res.json({success: false, message: error.message});
 
     }
+
     
 }
+// delete 
+async function DeleteBooking(req, res) {
+  try {
+    const { id } = req.params;
+
+    const booking = await Booking.findById(id);
+
+    if (!booking) {
+      return res.json({
+        success: false,
+        message: "Booking not found"
+      });
+    }
+
+    // ❌ only enquiry or cancelled booking allowed
+    if (
+      booking.type !== "enquiry" &&
+      booking.status !== "cancelled"
+    ) {
+      return res.json({
+        success: false,
+        message: "Only enquiry or cancelled bookings can be deleted"
+      });
+    }
+
+    // 🔥 remove assigned dates from photographers
+    if (booking.assigned?.length) {
+      for (const assign of booking.assigned) {
+        const event = booking.events.find(
+          e => e.day === assign.day
+        );
+
+        if (!event) continue;
+
+        for (const photographerId of assign.photographerIds) {
+          await Photographer.findByIdAndUpdate(
+            photographerId,
+            {
+              $pull: {
+                bookedDates: event.date
+              }
+            }
+          );
+        }
+      }
+    }
+
+    await Booking.findByIdAndDelete(id);
+
+    res.json({
+      success: true,
+      message: "Booking deleted successfully"
+    });
+
+  } catch (error) {
+    res.json({
+      success: false,
+      message: error.message
+    });
+  }
+}
+
+
 
 
 
@@ -227,5 +291,6 @@ module.exports = {
     ConvertToBooking,
     GetPhotographers,
     GetAvailablePhotographers,
-    LogOut
+    LogOut,
+    DeleteBooking
 };

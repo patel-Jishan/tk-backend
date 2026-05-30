@@ -24,6 +24,12 @@ async function CreatePhotographer(req, res) {
             };
         }
 
+        if (!role?.trim()) {
+            return res.json({
+                success: false,
+                message: "Role is required"
+            });
+        }
 
         // 🔥 Save Photographer
         let photographer = await Photographer.create({
@@ -66,6 +72,12 @@ async function UpdatePhotographer(req, res) {
         let photographer = await Photographer.findById(id);
         if (!photographer) {
             return res.json({ success: false, message: "Photographer not found" });
+        }
+        if (!role?.trim()) {
+            return res.json({
+                success: false,
+                message: "Role is required"
+            });
         }
 
         let updateData = req.body;

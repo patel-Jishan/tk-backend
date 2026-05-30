@@ -7,18 +7,22 @@ const photographerSchema = new mongoose.Schema({
   phone: String,
   city: String,
 
+  // role: {
+  //   type: String,
+  //   enum: [
+  //     "traditional_photographer",
+  //     "traditional_videographer",
+  //     "semi_candid_photographer",
+  //     "semi_candid_videographer",
+  //     "candid_photographer",
+  //     "cinematographer",
+  //     "drone"
+  //   ]
+  // },
   role: {
-    type: String,
-    enum: [
-      "traditional_photographer",
-      "traditional_videographer",
-      "semi_candid_photographer",
-      "semi_candid_videographer",
-      "candid_photographer",
-      "cinematographer",
-      "drone"
-    ]
-  },
+  type: String,
+  required: true
+},
 
   perDayRate: {
     type: Number,
