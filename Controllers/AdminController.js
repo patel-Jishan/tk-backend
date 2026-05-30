@@ -154,22 +154,56 @@ async function UpdateStatus(req, res) {
 }
 
 async function ConvertToBooking(req, res) {
-    try {
-        let { id } = req.params;
+  try {
+    let { id } = req.params;
 
-        let booking = await Booking.findByIdAndUpdate(
-            id,
-            { type: "booking" },
-            { new: true }
-        );
+    let booking = await Booking.findById(id)
+      .populate("events.services.serviceId", "name price priceType")
+      .populate("addons.serviceId", "name price priceType");
 
-        res.json({ success: true, booking });
-
-    } catch (error) {
-        res.json({ success: false, message: error.message });
+    if (!booking) {
+      return res.json({
+        success: false,
+        message: "Booking not found"
+      });
     }
-}
 
+    // ❌ Already booking
+    if (booking.type === "booking") {
+      return res.json({
+        success: false,
+        message: "Already converted to booking"
+      });
+    }
+
+    // ✅ Convert enquiry → booking
+    booking.type = "booking";
+    await booking.save();
+
+    // ✅ Send mail after conversion
+    await sendBookingMail({
+      customer: booking.customer,
+      bookingId: booking.bookingId,
+      events: booking.events,
+      addons: booking.addons,
+      estimate: booking.estimate,
+      status: booking.status,
+      createdAt: booking.createdAt
+    });
+
+    res.json({
+      success: true,
+      message: "Enquiry converted to booking",
+      booking
+    });
+
+  } catch (error) {
+    res.json({
+      success: false,
+      message: error.message
+    });
+  }
+}
 // 👤 Get All Photographers
 async function GetPhotographers(req, res) {
     try {
