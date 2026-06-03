@@ -32,7 +32,9 @@ function Auth(...roles) {
 
                     res.cookie("accessToken", newAccessToken, {
                         httpOnly: true,
-                        secure: false
+                        secure: false,
+                        sameSite: "lax",
+                        maxAge: 15 * 60 * 1000, // 15 minutes
                     });
 
                     req.id = decoded.id;
