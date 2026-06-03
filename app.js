@@ -7,7 +7,10 @@ const app = express();
 // Middlewares
 app.use(express.json());
 app.use(cors({
-    origin:"https://tkmomentscapture.vercel.app",
+    origin: [
+            "https://www.tkmomentscapture.com",
+            "https://tkmomentscapture.com"
+    ],
     credentials:true,
 }))
 app.use(cookieParser());
