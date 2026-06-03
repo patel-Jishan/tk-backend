@@ -7,7 +7,7 @@ const app = express();
 // Middlewares
 app.use(express.json());
 app.use(cors({
-    origin:"https://tkmoments-merge-frontend.vercel.app",
+    origin:"https://tkmomentscapture.vercel.app",
     credentials:true,
 }))
 app.use(cookieParser());
