@@ -394,6 +394,24 @@ ${service.serviceId?.name || "Service"}
 
     </div>
 
+    <!-- Terms & Conditions -->
+<div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#8b6a4a;font-family:Arial,sans-serif;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #d4c4a0;">
+  Terms &amp; Conditions
+</div>
+
+<div style="background:#f5ede0;border:1px solid #d4b88a;border-radius:10px;padding:20px;margin-bottom:24px;font-family:Arial,sans-serif;font-size:13px;color:#3b2a1a;line-height:1.9;">
+  <ul style="margin:0;padding-left:20px;list-style:disc;">
+    <li style="margin-bottom:10px;">In case any electronic item gets defected, we are not responsible for such damage (such as camera, memory card, hard disk, etc). If any issue or problem occurs, we don't take any responsibility.</li>
+    <li style="margin-bottom:10px;">For the confirmation of your order, the amount of <strong>₹10,000</strong> has to be paid in advance. In case you cancel the order, the advance payment will <strong>not be refundable</strong>.</li>
+    <li style="margin-bottom:10px;">The payment of <strong>70%</strong> will be made as soon as the wedding is over and you will get the receipt for the same. The remaining payment will need to be submitted after the handover of your data.</li>
+    <li style="margin-bottom:10px;">You have to come to the office for photo selection after the marriage. The sooner the better. Same for the data when it's prepared &amp; ready.</li>
+    <li style="margin-bottom:10px;">You can make changes in album &amp; photo for only <strong>one time</strong>. If you ask to change it more than once, charges will be levied.</li>
+    <li style="margin-bottom:10px;">It is up to you to give time to the photographer for the couple's portrait photography.</li>
+    <li style="margin-bottom:10px;">Within <strong>40km</strong> from Ankleshwar–Bharuch, no transportation charge. Beyond 40km, transportation charges will be applied.</li>
+    <li style="margin-bottom:0;">Disrespect, abuse, or misbehavior toward any member of TK Moments Capture will <strong>not be tolerated</strong>.</li>
+  </ul>
+</div>
+
     <!-- Footer -->
     <div style="background:#3b2a1a;padding:24px 20px;text-align:center;">
 
