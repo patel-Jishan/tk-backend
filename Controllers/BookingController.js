@@ -2,7 +2,7 @@ const Booking = require("../Models/BookingSchema");
 const Service = require("../Models/ServiceSchema");
 const Photographer = require("../Models/PhotographerSchema");
 const { sendPhotographerAssignMail, sendWorkStatusMail, sendPaymentMail, sendPaymentMailToCustomer } = require("./MailController");
-
+const Setting = require("../Models/SettingSchema");
 const { sendBookingMail } = require("./MailController");
 
 
@@ -40,19 +40,38 @@ if (addons?.length) {
     }
 }
 
-// 🔥 25% Add
+// 🔥 Get Profit Percentage
+let setting = await Setting.findOne();
+
+if (!setting) {
+    setting = await Setting.create({
+        profitPercentage: 25
+    });
+}
+
 const subtotal = estimate;
-const extraCharge = subtotal * 0.25;
-const finalEstimate = subtotal + extraCharge;
+
+const profitPercentage = setting.profitPercentage;
+
+const profitAmount =
+    subtotal * (profitPercentage / 100);
+
+const finalEstimate =
+    subtotal + profitAmount;
 
 // 🔥 TYPE SET
 let type = isConfirmed ? "booking" : "enquiry";
 
-let booking = await Booking.create({
+        let booking = await Booking.create({
     bookingId: "BK" + Date.now(),
+
     customer,
     events,
     addons,
+
+    subtotal,
+    profitPercentage,
+    profitAmount,
 
     estimate: finalEstimate,
 
@@ -64,7 +83,9 @@ let booking = await Booking.create({
     },
 
     type
-});        // 🔥 MAIL ONLY IF BOOKING CONFIRMED
+});
+        
+        // 🔥 MAIL ONLY IF BOOKING CONFIRMED
         if (type === "booking") {
 
             let populatedBooking = await Booking.findById(booking._id)
@@ -78,7 +99,8 @@ let booking = await Booking.create({
     addons: populatedBooking.addons,
 
     subtotal,
-    extraCharge,
+    profitPercentage,
+    profitAmount,
     estimate: finalEstimate,
 
     status: populatedBooking.status,
@@ -228,16 +250,32 @@ async function GetEstimate(req, res) {
             }
         }
 
-        // 🔥 Add 25%
-        const extraCharge = total * 0.25;
-        const finalEstimate = total + extraCharge;
+       let setting = await Setting.findOne();
 
-        res.json({
-            success: true,
-            subtotal: total,
-            extraCharge,
-            estimate: finalEstimate
-        });
+if (!setting) {
+    setting = await Setting.create({
+        profitPercentage: 25
+    });
+}
+
+const subtotal = total;
+
+const profitPercentage =
+    setting.profitPercentage;
+
+const profitAmount =
+    subtotal * (profitPercentage / 100);
+
+const finalEstimate =
+    subtotal + profitAmount;
+
+       res.json({
+    success: true,
+    subtotal,
+    profitPercentage,
+    profitAmount,
+    estimate: finalEstimate
+});
 
     } catch (error) {
         res.json({
