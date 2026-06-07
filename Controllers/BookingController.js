@@ -4,6 +4,7 @@ const Photographer = require("../Models/PhotographerSchema");
 const { sendPhotographerAssignMail, sendWorkStatusMail, sendPaymentMail, sendPaymentMailToCustomer } = require("./MailController");
 const Setting = require("../Models/SettingSchema");
 const { sendBookingMail } = require("./MailController");
+const sendWhatsApp = require("../Utils/sendWhatsApp");
 
 
 async function CreateBooking(req, res) {
@@ -191,15 +192,50 @@ async function AssignPhotographer(req, res) {
     await booking.save();
 
     // 🔥 SEND MAIL (1 per photographer)
-    for (let key in photographerEventMap) {
-      let data = photographerEventMap[key];
+    // for (let key in photographerEventMap) {
+    //   let data = photographerEventMap[key];
 
-      await sendPhotographerAssignMail({
-        photographer: data.photographer,
-        booking,
-        events: data.events
-      });
-    }
+    //   await sendPhotographerAssignMail({
+    //     photographer: data.photographer,
+    //     booking,
+    //     events: data.events
+    //   });
+    // }
+    for (let key in photographerEventMap) {
+
+  let data = photographerEventMap[key];
+
+  await sendPhotographerAssignMail({
+    photographer: data.photographer,
+    booking,
+    events: data.events
+  });
+
+  const eventList = data.events
+    .map(
+      e =>
+        `📅 ${e.date}\n📍 ${e.location}`
+    )
+    .join("\n\n");
+
+  const message = `Hello ${data.photographer.name},
+
+You have been assigned for a new booking.
+
+Booking ID: ${booking.bookingId}
+
+${eventList}
+
+Please contact admin for further details.
+
+TK Moments Capture`;
+
+  await sendWhatsApp(
+    data.photographer.phone,
+    message
+  );
+}
+
 
     res.json({
       success: true,
