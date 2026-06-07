@@ -62,7 +62,22 @@ const bookingSchema = new mongoose.Schema(
 
     assigned: [assignedSchema],
 
-    estimate: Number,
+    subtotal: {
+  type: Number,
+  default: 0
+},
+
+profitPercentage: {
+  type: Number,
+  default: 0
+},
+
+profitAmount: {
+  type: Number,
+  default: 0
+},
+
+estimate: Number,
 
     type: {
       type: String,
