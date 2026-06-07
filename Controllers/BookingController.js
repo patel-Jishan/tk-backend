@@ -10,79 +10,74 @@ async function CreateBooking(req, res) {
     try {
         let { customer, events, addons, isConfirmed } = req.body;
 
-        let estimate = 0;
+        let subtotal = 0;
 
-        // 🔥 Calculate Event Services
-        for (let event of events) {
-            for (let item of event.services) {
-                let service = await Service.findById(item.serviceId);
-                if (!service) continue;
+// 🔥 Event Services
+for (let event of events) {
+  for (let item of event.services) {
+    let service = await Service.findById(item.serviceId);
 
-                if (service.priceType === "per_day") {
-                    estimate += service.price;
-                } else if (service.priceType === "per_unit") {
-                    estimate += service.price * item.quantity;
-                }
-            }
-        }
+    if (!service) continue;
 
-       // 🔥 Addons
-if (addons?.length) {
-    for (let item of addons) {
-        let service = await Service.findById(item.serviceId);
-        if (!service) continue;
-
-        if (service.priceType === "fixed") {
-            estimate += service.price;
-        } else if (service.priceType === "per_unit") {
-            estimate += service.price * item.quantity;
-        }
+    if (service.priceType === "per_day") {
+      subtotal += service.price;
+    } else if (service.priceType === "per_unit") {
+      subtotal += service.price * item.quantity;
     }
+  }
 }
 
-// 🔥 Get Profit Percentage
+// 🔥 Addons
+if (addons?.length) {
+  for (let item of addons) {
+    let service = await Service.findById(item.serviceId);
+
+    if (!service) continue;
+
+    if (service.priceType === "fixed") {
+      subtotal += service.price;
+    } else if (service.priceType === "per_unit") {
+      subtotal += service.price * item.quantity;
+    }
+  }
+}
+
+// 🔥 Profit Setting
 let setting = await Setting.findOne();
 
 if (!setting) {
-    setting = await Setting.create({
-        profitPercentage: 25
-    });
+  setting = await Setting.create({
+    profitPercentage: 25
+  });
 }
 
-const subtotal = estimate;
-
 const profitPercentage = setting.profitPercentage;
-
-const profitAmount =
-    subtotal * (profitPercentage / 100);
-
-const finalEstimate =
-    subtotal + profitAmount;
-
+const profitAmount = subtotal * (profitPercentage / 100);
+const finalEstimate = subtotal + profitAmount;
 // 🔥 TYPE SET
 let type = isConfirmed ? "booking" : "enquiry";
 
         let booking = await Booking.create({
-    bookingId: "BK" + Date.now(),
+  bookingId: "BK" + Date.now(),
 
-    customer,
-    events,
-    addons,
+  customer,
+  events,
+  addons,
 
-    subtotal,
-    profitPercentage,
-    profitAmount,
+  subtotal,
+  profitPercentage,
+  profitAmount,
 
-    estimate: finalEstimate,
+  estimate: finalEstimate,
 
-    payment: {
-        totalAmount: finalEstimate,
-        paidAmount: 0,
-        remainingAmount: finalEstimate,
-        status: "pending"
-    },
+  payment: {
+    totalAmount: finalEstimate,
+    paidAmount: 0,
+    remainingAmount: finalEstimate,
+    status: "pending"
+  },
 
-    type
+  type
 });
         
         // 🔥 MAIL ONLY IF BOOKING CONFIRMED
@@ -92,19 +87,19 @@ let type = isConfirmed ? "booking" : "enquiry";
                 .populate("events.services.serviceId", "name price priceType")
                 .populate("addons.serviceId", "name price priceType");
 
-           await sendBookingMail({
-    customer: populatedBooking.customer,
-    bookingId: populatedBooking.bookingId,
-    events: populatedBooking.events,
-    addons: populatedBooking.addons,
+          await sendBookingMail({
+  customer: populatedBooking.customer,
+  bookingId: populatedBooking.bookingId,
+  events: populatedBooking.events,
+  addons: populatedBooking.addons,
 
-    subtotal,
-    profitPercentage,
-    profitAmount,
-    estimate: finalEstimate,
+  subtotal,
+  profitPercentage,
+  profitAmount,
+  estimate: finalEstimate,
 
-    status: populatedBooking.status,
-    createdAt: populatedBooking.createdAt
+  status: populatedBooking.status,
+  createdAt: populatedBooking.createdAt
 });
         }
 
@@ -220,61 +215,57 @@ async function AssignPhotographer(req, res) {
 async function GetEstimate(req, res) {
     try {
         let { events, addons } = req.body;
-        let total = 0;
+        let subtotal = 0;
 
-        // 🔥 Event Services
-        for (let event of events) {
-            for (let item of event.services) {
-                let service = await Service.findById(item.serviceId);
-                if (!service) continue;
+// Events
+for (let event of events) {
+  for (let item of event.services) {
+    let service = await Service.findById(item.serviceId);
 
-                if (service.priceType === "per_day") {
-                    total += service.price;
-                } else if (service.priceType === "per_unit") {
-                    total += service.price * item.quantity;
-                }
-            }
-        }
+    if (!service) continue;
 
-        // 🔥 Addons
-        if (addons?.length) {
-            for (let item of addons) {
-                let service = await Service.findById(item.serviceId);
-                if (!service) continue;
-
-                if (service.priceType === "fixed") {
-                    total += service.price;
-                } else if (service.priceType === "per_unit") {
-                    total += service.price * item.quantity;
-                }
-            }
-        }
-
-       let setting = await Setting.findOne();
-
-if (!setting) {
-    setting = await Setting.create({
-        profitPercentage: 25
-    });
+    if (service.priceType === "per_day") {
+      subtotal += service.price;
+    } else if (service.priceType === "per_unit") {
+      subtotal += service.price * item.quantity;
+    }
+  }
 }
 
-const subtotal = total;
+// Addons
+if (addons?.length) {
+  for (let item of addons) {
+    let service = await Service.findById(item.serviceId);
 
-const profitPercentage =
-    setting.profitPercentage;
+    if (!service) continue;
 
-const profitAmount =
-    subtotal * (profitPercentage / 100);
+    if (service.priceType === "fixed") {
+      subtotal += service.price;
+    } else if (service.priceType === "per_unit") {
+      subtotal += service.price * item.quantity;
+    }
+  }
+}
 
-const finalEstimate =
-    subtotal + profitAmount;
+// Profit
+let setting = await Setting.findOne();
 
-       res.json({
-    success: true,
-    subtotal,
-    profitPercentage,
-    profitAmount,
-    estimate: finalEstimate
+if (!setting) {
+  setting = await Setting.create({
+    profitPercentage: 25
+  });
+}
+
+const profitPercentage = setting.profitPercentage;
+const profitAmount = subtotal * (profitPercentage / 100);
+const finalEstimate = subtotal + profitAmount;
+
+res.json({
+  success: true,
+  subtotal,
+  profitPercentage,
+  profitAmount,
+  estimate: finalEstimate
 });
 
     } catch (error) {
