@@ -13,7 +13,7 @@ const {
     LogOut,
 DeleteBooking
 } = require('../Controllers/AdminController');
-
+const {GetProfit, UpdateProfit} = require('../Controllers/SettingController');
 
 
 let router = express.Router();
@@ -26,6 +26,9 @@ router.get("/bookings", Auth("admin"), GetBookings);
 router.get("/bookings/:id", Auth("admin"), GetSingleBooking);
 router.patch("/bookings/:id/status", Auth("admin"), UpdateStatus);
 router.delete("/:id", Auth("admin"), DeleteBooking );
+
+router.get("/profit", GetProfit);
+router.put("/profit", UpdateProfit);
 
 router.get("/enquiries", Auth("admin"), GetEnquiries);
 router.get("/bookings-only", Auth("admin"), GetBookings);
