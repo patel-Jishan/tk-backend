@@ -56,7 +56,18 @@ function buildAddonRows(addons) {
 
 
 // ═════════════════════════════════════════════════════════════════════════════
-async function sendBookingMail({ customer, bookingId, events, addons, estimate, status, createdAt }) {
+async function sendBookingMail({
+  customer,
+  bookingId,
+  events,
+  addons,
+  subtotal,
+  profitPercentage,
+  profitAmount,
+  estimate,
+  status,
+  createdAt
+}) {
   try {
     const { name, email, phone, note } = customer;
     const transporter = nodemailer.createTransport({
@@ -596,10 +607,30 @@ ${service.serviceId?.name || "Service"}
     <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#8b6a4a;margin-bottom:10px;padding-bottom:8px;border-bottom:0.5px solid #d4c4a0">Add-ons</div>
     <div style="background:#f9f5ee;border:0.5px solid #d4c4a0;border-radius:8px;padding:14px 16px;margin-bottom:20px">${addonRows} </div>` : ""}
 
-    <div style="background:#3b2a1a;border-radius:8px;padding:16px 18px;display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-      <span style="color:#e8c97a;font-size:12px;letter-spacing:2px;text-transform:uppercase">Total Estimate:</span>
-      <span style="color:#e8c97a;font-size:20px;font-family:Georgia,serif">₹${fmtAmt(estimate)}</span>
-    </div>
+    <div style="background:#3b2a1a;border-radius:8px;padding:16px 18px;margin-bottom:20px">
+
+  <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+    <span style="color:#d4c4a0">Subtotal</span>
+    <span style="color:white">₹${fmtAmt(subtotal)}</span>
+  </div>
+
+  <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+    <span style="color:#d4c4a0">Profit (${profitPercentage}%)</span>
+    <span style="color:white">₹${fmtAmt(profitAmount)}</span>
+  </div>
+
+  <hr style="border:none;border-top:1px solid #5a3e28;margin:10px 0">
+
+  <div style="display:flex;justify-content:space-between">
+    <span style="color:#e8c97a;font-weight:bold">
+      Final Estimate
+    </span>
+    <span style="color:#e8c97a;font-size:20px">
+      ₹${fmtAmt(estimate)}
+    </span>
+  </div>
+
+</div>
 
     <div style="background:#fff3e0;border:0.5px solid #d4b88a;border-left:3px solid #c4a265;border-radius:0 8px 8px 0;padding:12px 16px;font-size:13px;color:#6b4c2e">
       &#9658;&nbsp; Please assign photographer(s) as soon as possible and confirm availability for all event dates.
