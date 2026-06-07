@@ -26,55 +26,64 @@ async function CreateBooking(req, res) {
             }
         }
 
-        // 🔥 Addons
-        if (addons?.length) {
-            for (let item of addons) {
-                let service = await Service.findById(item.serviceId);
-                if (!service) continue;
+       // 🔥 Addons
+if (addons?.length) {
+    for (let item of addons) {
+        let service = await Service.findById(item.serviceId);
+        if (!service) continue;
 
-                if (service.priceType === "fixed") {
-                    estimate += service.price;
-                } else if (service.priceType === "per_unit") {
-                    estimate += service.price * item.quantity;
-                }
-            }
+        if (service.priceType === "fixed") {
+            estimate += service.price;
+        } else if (service.priceType === "per_unit") {
+            estimate += service.price * item.quantity;
         }
+    }
+}
 
-        // 🔥 TYPE SET (MAIN CHANGE)
-        let type = isConfirmed ? "booking" : "enquiry";
+// 🔥 25% Add
+const subtotal = estimate;
+const extraCharge = subtotal * 0.25;
+const finalEstimate = subtotal + extraCharge;
 
-        let booking = await Booking.create({
-            bookingId: "BK" + Date.now(),
-            customer,
-            events,
-            addons,
-            estimate,
-            
-            payment: {
-                totalAmount: estimate,
-                paidAmount: 0,
-                remainingAmount: estimate,
-                status: "pending"
-            },
-            type
-        });
+// 🔥 TYPE SET
+let type = isConfirmed ? "booking" : "enquiry";
 
-        // 🔥 MAIL ONLY IF BOOKING CONFIRMED
+let booking = await Booking.create({
+    bookingId: "BK" + Date.now(),
+    customer,
+    events,
+    addons,
+
+    estimate: finalEstimate,
+
+    payment: {
+        totalAmount: finalEstimate,
+        paidAmount: 0,
+        remainingAmount: finalEstimate,
+        status: "pending"
+    },
+
+    type
+});        // 🔥 MAIL ONLY IF BOOKING CONFIRMED
         if (type === "booking") {
 
             let populatedBooking = await Booking.findById(booking._id)
                 .populate("events.services.serviceId", "name price priceType")
                 .populate("addons.serviceId", "name price priceType");
 
-            await sendBookingMail({
-                customer: populatedBooking.customer,
-                bookingId: populatedBooking.bookingId,
-                events: populatedBooking.events,
-                addons: populatedBooking.addons,
-                estimate: populatedBooking.estimate,
-                status: populatedBooking.status,
-                createdAt: populatedBooking.createdAt
-            });
+           await sendBookingMail({
+    customer: populatedBooking.customer,
+    bookingId: populatedBooking.bookingId,
+    events: populatedBooking.events,
+    addons: populatedBooking.addons,
+
+    subtotal,
+    extraCharge,
+    estimate: finalEstimate,
+
+    status: populatedBooking.status,
+    createdAt: populatedBooking.createdAt
+});
         }
 
         res.json({
