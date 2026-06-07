@@ -189,7 +189,6 @@ async function AssignPhotographer(req, res) {
 async function GetEstimate(req, res) {
     try {
         let { events, addons } = req.body;
-
         let total = 0;
 
         // 🔥 Event Services
@@ -220,16 +219,24 @@ async function GetEstimate(req, res) {
             }
         }
 
-        res.json({ success: true, estimate: total });
+        // 🔥 Add 25%
+        const extraCharge = total * 0.25;
+        const finalEstimate = total + extraCharge;
+
+        res.json({
+            success: true,
+            subtotal: total,
+            extraCharge,
+            estimate: finalEstimate
+        });
 
     } catch (error) {
-        res.json({ success: false, message: error.message });
+        res.json({
+            success: false,
+            message: error.message
+        });
     }
 }
-
-
-
-
 
 async function UpdateWorkStatus(req, res) {
     try {
