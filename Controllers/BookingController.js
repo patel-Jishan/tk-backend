@@ -403,11 +403,93 @@ async function UpdateClientPayment(req, res) {
 }
 
 
+async function UpdateDataHandover(req, res) {
+  try {
+    const { id } = req.params;
+
+    const {
+      photographerId,
+      driveType,
+      receivedBy,
+      note
+    } = req.body;
+
+    const booking = await Booking.findById(id);
+
+    if (!booking) {
+      return res.json({
+        success: false,
+        message: "Booking not found"
+      });
+    }
+
+    let photographerEntry =
+      booking.dataHandover.find(
+        item =>
+          item.photographerId.toString() ===
+          photographerId
+      );
+
+    if (photographerEntry) {
+
+      const alreadyExists =
+        photographerEntry.drives.find(
+          d => d.driveType === driveType
+        );
+
+      if (alreadyExists) {
+        return res.json({
+          success: false,
+          message: `${driveType} drive already submitted`
+        });
+      }
+
+      photographerEntry.drives.push({
+        driveType,
+        receivedBy,
+        note,
+        handedOver: true,
+        handedOverDate: new Date()
+      });
+
+    } else {
+
+      booking.dataHandover.push({
+        photographerId,
+        drives: [
+          {
+            driveType,
+            receivedBy,
+            note,
+            handedOver: true,
+            handedOverDate: new Date()
+          }
+        ]
+      });
+    }
+
+    await booking.save();
+
+    res.json({
+      success: true,
+      message: "Data handover saved",
+      booking
+    });
+
+  } catch (error) {
+    res.json({
+      success: false,
+      message: error.message
+    });
+  }
+}
+
 module.exports = {
     CreateBooking,
     GetAllBookings,
     AssignPhotographer,
     GetEstimate,
     UpdateWorkStatus,
-    UpdateClientPayment
+    UpdateClientPayment,
+    UpdateDataHandover
 };

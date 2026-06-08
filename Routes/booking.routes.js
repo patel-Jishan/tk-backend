@@ -6,6 +6,7 @@ const {
     GetEstimate,
     UpdateWorkStatus,
     UpdateClientPayment,
+    UpdateDataHandover,
     // GetAllBookings
 } = require('../Controllers/BookingController');
 
@@ -16,6 +17,7 @@ router.post("/", CreateBooking);
 router.patch("/assign/:id", Auth("admin"), AssignPhotographer);
 router.post("/estimate", GetEstimate);
 
+router.post("/booking/:id/handover", UpdateDataHandover);
 
 router.post("/work-status/:id", UpdateWorkStatus);
 router.post("/payment/:id", UpdateClientPayment);

@@ -1,5 +1,40 @@
 const mongoose = require("mongoose");
 
+const dataHandoverSchema = new mongoose.Schema({
+  photographerId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Photographer",
+    required: true
+  },
+
+  drives: [
+    {
+      driveType: {
+        type: String,
+        enum: ["A", "B", "C", "D"],
+        required: true
+      },
+
+      handedOver: {
+        type: Boolean,
+        default: true
+      },
+
+      handedOverDate: {
+        type: Date,
+        default: Date.now
+      },
+
+      receivedBy: {
+        type: String,
+        required: true
+      },
+
+      note: String
+    }
+  ]
+});
+
 const eventSchema = new mongoose.Schema({
   day: Number,
   date: String,
@@ -61,6 +96,7 @@ const bookingSchema = new mongoose.Schema(
     ],
 
     assigned: [assignedSchema],
+    dataHandover: [dataHandoverSchema],
 
     subtotal: {
   type: Number,
@@ -117,6 +153,8 @@ estimate: Number,
         enum: ["pending", "partial", "completed"],
         default: "pending"
       },
+
+      
 
       history: [
         {
