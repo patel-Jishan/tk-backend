@@ -126,6 +126,20 @@ estimate: Number,
       enum: ["pending", "confirmed", "cancelled"],
       default: "pending"
     },
+    discountPercentage: {
+  type: Number,
+  default: 0
+},
+
+discountAmount: {
+  type: Number,
+  default: 0
+},
+
+finalAmount: {
+  type: Number,
+  default: 0
+},
 
     workStatus: {
       type: String,
