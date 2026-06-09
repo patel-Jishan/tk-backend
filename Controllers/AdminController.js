@@ -28,7 +28,7 @@ async function AdminLogin(req, res) {
         );
 
         let refreshToken = jwt.sign(
-            { id: admin._id, role:  admin.role" },
+            { id: admin._id, role:  admin.role },
             process.env.REFRESH,
             { expiresIn: "7d" }
         );
