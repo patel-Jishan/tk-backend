@@ -312,6 +312,75 @@ res.json({
     }
 }
 
+
+async function UpdateBookingPrice(req, res) {
+  try {
+
+    const { id } = req.params;
+    const { discountPercentage } = req.body;
+
+    const booking = await Booking.findById(id);
+
+    if (!booking) {
+      return res.json({
+        success: false,
+        message: "Booking not found"
+      });
+    }
+
+    // ❌ Confirmed booking lock
+    if (booking.status === "confirmed") {
+      return res.json({
+        success: false,
+        message:
+          "Price cannot be changed after confirmation"
+      });
+    }
+
+    const subtotal = booking.subtotal;
+
+    const profitAmount = booking.profitAmount;
+
+    const estimate = subtotal + profitAmount;
+
+    const discountAmount =
+      estimate * (discountPercentage / 100);
+
+    const finalAmount =
+      estimate - discountAmount;
+
+    booking.discountPercentage =
+      discountPercentage;
+
+    booking.discountAmount =
+      discountAmount;
+
+    booking.finalAmount =
+      finalAmount;
+
+    booking.payment.totalAmount =
+      finalAmount;
+
+    booking.payment.remainingAmount =
+      finalAmount -
+      booking.payment.paidAmount;
+
+    await booking.save();
+
+    res.json({
+      success: true,
+      message: "Price updated",
+      booking
+    });
+
+  } catch (error) {
+    res.json({
+      success: false,
+      message: error.message
+    });
+  }
+}
+
 async function UpdateWorkStatus(req, res) {
     try {
         let { id } = req.params;
@@ -491,5 +560,7 @@ module.exports = {
     GetEstimate,
     UpdateWorkStatus,
     UpdateClientPayment,
-    UpdateDataHandover
+    UpdateDataHandover,
+    UpdateBookingPrice,
+    
 };
