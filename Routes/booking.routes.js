@@ -7,6 +7,7 @@ const {
     UpdateWorkStatus,
     UpdateClientPayment,
     UpdateDataHandover,
+    UpdateBookingPrice,
     // GetAllBookings
 } = require('../Controllers/BookingController');
 
@@ -21,6 +22,7 @@ router.post("/booking/:id/handover", UpdateDataHandover);
 
 router.post("/work-status/:id", UpdateWorkStatus);
 router.post("/payment/:id", UpdateClientPayment);
+router.put("/booking/:id/update-price", UpdateBookingPrice);
 
 
 module.exports = router;
