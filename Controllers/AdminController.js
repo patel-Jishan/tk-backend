@@ -22,13 +22,13 @@ async function AdminLogin(req, res) {
         }
 
         let accessToken = jwt.sign(
-            { id: admin._id, role: "admin" },
+            { id: admin._id, role:  admin.role },
             process.env.ACCESS,
             { expiresIn: "15m" }
         );
 
         let refreshToken = jwt.sign(
-            { id: admin._id, role: "admin" },
+            { id: admin._id, role:  admin.role" },
             process.env.REFRESH,
             { expiresIn: "7d" }
         );
