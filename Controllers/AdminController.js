@@ -119,23 +119,33 @@ async function GetEnquiries(req, res) {
 
 // 🔍 Get Single Booking
 async function GetSingleBooking(req, res) {
-    try {
-        let { id } = req.params;
+  try {
+    console.log("Booking ID:", req.params.id);
 
-        let booking = await Booking.findById(id)
-            .populate("events.services.serviceId")
-            .populate("addons.serviceId")
-            .populate("assigned.photographerIds");
+    let booking = await Booking.findById(req.params.id)
+      .populate("events.services.serviceId")
+      .populate("addons.serviceId")
+      .populate("assigned.assignments.photographerId")
+      .populate("assigned.assignments.serviceId");
 
-        if (!booking) {
-            return res.json({ success: false, message: "Booking not found" });
-        }
+    console.log("Booking:", booking);
 
-        res.json({ success: true, booking });
-
-    } catch (error) {
-        res.json({ success: false, message: error.message });
+    if (!booking) {
+      return res.json({
+        success: false,
+        message: "Booking not found"
+      });
     }
+
+    res.json({ success: true, booking });
+
+  } catch (error) {
+    console.log(error);
+    res.json({
+      success: false,
+      message: error.message
+    });
+  }
 }
 
 
