@@ -43,13 +43,12 @@ function buildAddonRows(addons) {
     const svc = a.serviceId;                 // populated object
     const name = svc?.name || "Add-on";
     const qty = a.quantity > 1 ? ` ×${a.quantity}` : "";
-    const price = svc?.priceType === "per_unit"
-      ? (svc.price || 0) * (a.quantity || 1)
-      : (svc?.price || 0);
+    // const price = svc?.priceType === "per_unit"
+    //   ? (svc.price || 0) * (a.quantity || 1)
+    //   : (svc?.price || 0);
     return `
         <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:0.5px solid #ead9c0;font-size:13px">
-          <span style="color:#4a3420">${name}${qty}</span>
-          <span style="color:#8b5e2e;font-weight:bold"> : ₹${fmtAmt(price)}</span>
+          <span style="color:#8b5e2e;font-weight:bold"> : ${name}${qty}</span>
         </div>`;
   }).join("");
 }
@@ -365,15 +364,8 @@ ${service.serviceId?.name || "Service"}
 
       <div style="background:#3b2a1a;border-radius:10px;padding:20px;margin-bottom:24px;font-family:Arial,sans-serif;">
 
-        <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding-bottom:12px;border-bottom:1px solid #5a3e28;font-size:14px;">
+        <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding-bottom:12px;font-size:14px;">
 
-          <span style="color:#b89a6a;">
-            Event Services (${events.length} day${events.length > 1 ? "s" : ""})
-          </span>
-
-          <span style="color:#fffdf8;">
-            ₹${fmtAmt(estimate)}
-          </span>
         </div>
 
         <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding-top:15px;">
@@ -652,7 +644,7 @@ ${service.serviceId?.name || "Service"}
 
 // (Photographer Mail)
 
-async function sendPhotographerAssignMail({ photographer, booking, events }) {
+async function sendPhotographerAssignMail({ photographer, booking, events, services }) {
   try {
     const transporter = nodemailer.createTransport({
       host: "smtp-relay.brevo.com",
@@ -716,15 +708,50 @@ async function sendPhotographerAssignMail({ photographer, booking, events }) {
 
           <p>You have been assigned to a new booking.</p>
 
-          <h4>👤 Client Details</h4>
-          <p>
-            <strong>Name:</strong> ${booking.customer.name}<br/>
-            <strong>Phone:</strong> ${booking.customer.phone}<br/>
-            <strong>Email:</strong> ${booking.customer.email}
-          </p>
 
-          <h4>📅 Event Details</h4>
-          ${eventCards}
+ <h4>👤 Client Details</h4>
+<p>
+  <strong>Name:</strong> ${booking.customer.name}<br/>
+</p>
+
+<h4>👨‍💼 Assigned Photographer</h4>
+
+<div
+  style="
+    display:inline-block;
+    background:#dff5e1;
+    border:1px solid #9dd7a3;
+    border-radius:20px;
+    padding:8px 15px;
+    margin-bottom:15px;
+    font-size:13px;
+    font-weight:bold;
+  ">
+  ${photographer.name}
+</div>
+
+<h4>📅 Event Details</h4>
+${eventCards}
+
+<h4>🎯 Assigned Services</h4>
+
+<div>
+${services.map(service => `
+  <span
+    style="
+      display:inline-block;
+      background:#ede2cf;
+      border:1px solid #d4c4a0;
+      border-radius:20px;
+      padding:6px 12px;
+      margin:3px;
+      font-size:12px;
+    ">
+    ${service}
+  </span>
+`).join("")}
+</div>
+
 
           <div style="margin-top:20px;padding:10px;background:#f5ede0;border-radius:6px;">
             Please be available on assigned dates.

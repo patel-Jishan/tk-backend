@@ -64,10 +64,20 @@ const eventSchema = new mongoose.Schema({
 
 const assignedSchema = new mongoose.Schema({
   day: Number,
-  photographerIds: [
+
+  assignments: [
     {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Photographer"
+      photographerId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Photographer",
+        required: true
+      },
+
+      serviceId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Service",
+        required: true
+      }
     }
   ]
 });
