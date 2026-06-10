@@ -93,8 +93,8 @@ async function GetBookings(req, res) {
         let bookings = await Booking.find({ type: "booking" }) // 🔥 filter
             .populate("events.services.serviceId")
             .populate("addons.serviceId")
-            .populate("assigned.photographerIds");
-
+            .populate("assigned.assignments.photographerId")
+.populate("assigned.assignments.serviceId");
         res.json({ success: true, bookings });
 
     } catch (error) {
@@ -288,16 +288,16 @@ async function DeleteBooking(req, res) {
 
         if (!event) continue;
 
-        for (const photographerId of assign.photographerIds) {
-          await Photographer.findByIdAndUpdate(
-            photographerId,
-            {
-              $pull: {
-                bookedDates: event.date
-              }
-            }
-          );
-        }
+        for (const item of assign.assignments) {
+  await Photographer.findByIdAndUpdate(
+    item.photographerId,
+    {
+      $pull: {
+        bookedDates: event.date
+      }
+    }
+  );
+}
       }
     }
 
