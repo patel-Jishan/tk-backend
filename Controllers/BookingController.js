@@ -116,17 +116,24 @@ let type = isConfirmed ? "booking" : "enquiry";
 }
 
 async function GetAllBookings(req, res) {
-    try {
-        let bookings = await Booking.find()
-            .populate("events.services.serviceId")
-            .populate("addons.serviceId")
-            .populate("assigned.photographerIds");
+  try {
+    let bookings = await Booking.find()
+      .populate("events.services.serviceId")
+      .populate("addons.serviceId")
+      .populate("assigned.assignments.photographerId")
+      .populate("assigned.assignments.serviceId");
 
-        res.json({ success: true, bookings });
+    res.json({
+      success: true,
+      bookings
+    });
 
-    } catch (error) {
-        res.json({ success: false, message: error.message });
-    }
+  } catch (error) {
+    res.json({
+      success: false,
+      message: error.message
+    });
+  }
 }
 
 
