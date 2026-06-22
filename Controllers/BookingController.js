@@ -535,9 +535,11 @@ async function UpdateDataHandover(req, res) {
 
     const {
       photographerId,
+      driveId,
       driveType,
       receivedBy,
-      note
+      note,
+      copiedToPC
     } = req.body;
 
     const booking = await Booking.findById(id);
@@ -549,6 +551,14 @@ async function UpdateDataHandover(req, res) {
       });
     }
 
+    booking.dataHandover.forEach((handover) => {
+      handover.drives.forEach((drive) => {
+        if (drive.copiedToPC === undefined) {
+          drive.copiedToPC = false;
+        }
+      });
+    });
+
     let photographerEntry =
       booking.dataHandover.find(
         item =>
@@ -556,27 +566,27 @@ async function UpdateDataHandover(req, res) {
           photographerId
       );
 
+    const handoverPayload = {
+      driveType,
+      receivedBy,
+      note,
+      copiedToPC: copiedToPC === true,
+      handedOver: true
+    };
+
     if (photographerEntry) {
+      const existingDrive = driveId
+        ? photographerEntry.drives.id(driveId)
+        : null;
 
-      const alreadyExists =
-        photographerEntry.drives.find(
-          d => d.driveType === driveType
-        );
-
-      if (alreadyExists) {
-        return res.json({
-          success: false,
-          message: `${driveType} drive already submitted`
+      if (existingDrive) {
+        existingDrive.set(handoverPayload);
+      } else {
+        photographerEntry.drives.push({
+          ...handoverPayload,
+          handedOverDate: new Date()
         });
       }
-
-      photographerEntry.drives.push({
-        driveType,
-        receivedBy,
-        note,
-        handedOver: true,
-        handedOverDate: new Date()
-      });
 
     } else {
 
@@ -584,10 +594,7 @@ async function UpdateDataHandover(req, res) {
         photographerId,
         drives: [
           {
-            driveType,
-            receivedBy,
-            note,
-            handedOver: true,
+            ...handoverPayload,
             handedOverDate: new Date()
           }
         ]
