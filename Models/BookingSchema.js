@@ -30,6 +30,11 @@ const dataHandoverSchema = new mongoose.Schema({
         required: true
       },
 
+      copiedToPC: {
+        type: Boolean,
+        default: false
+      },
+
       note: String
     }
   ]
