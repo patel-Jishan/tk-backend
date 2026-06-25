@@ -654,6 +654,8 @@ async function sendPhotographerAssignMail({ photographer, booking, events, servi
         user: process.env.BREVO_USER,
         pass: process.env.BREVO_PASS,
       },
+       family: 4,
+      debug: true,
       tls: {
         rejectUnauthorized: false,
         minVersion: "TLSv1.2",
@@ -777,12 +779,14 @@ async function sendPaymentMail({ photographer, payment, lastTransaction }) {
   try {
     const transporter = nodemailer.createTransport({
       host: "smtp-relay.brevo.com",
-      port: 587,
+      port: 2525,
       secure: false,
       auth: {
         user: process.env.BREVO_USER,
         pass: process.env.BREVO_PASS,
       },
+       family: 4,
+      debug: true,
       tls: {
         rejectUnauthorized: false,
         minVersion: "TLSv1.2",
@@ -870,12 +874,14 @@ async function sendWorkStatusMail({ customer, bookingId, workStatus }) {
   try {
     const transporter = nodemailer.createTransport({
       host: "smtp-relay.brevo.com",
-      port: 587,
+      port: 2525,
       secure: false,
       auth: {
         user: process.env.BREVO_USER,
         pass: process.env.BREVO_PASS,
       },
+       family: 4,
+      debug: true,
       tls: {
         rejectUnauthorized: false,
         minVersion: "TLSv1.2",
@@ -948,12 +954,14 @@ async function sendPaymentMailToCustomer({ customer, booking, transaction }) {
   try {
     const transporter = nodemailer.createTransport({
       host: "smtp-relay.brevo.com",
-      port: 587,
+      port: 2525,
       secure: false,
       auth: {
         user: process.env.BREVO_USER,
         pass: process.env.BREVO_PASS,
       },
+       family: 4,
+      debug: true,
       tls: {
         rejectUnauthorized: false,
         minVersion: "TLSv1.2",
