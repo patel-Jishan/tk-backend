@@ -236,11 +236,14 @@ async function GetAvailablePhotographers(req, res) {
     try {
         let { date, role } = req.query;
 
-        let photographers = await Photographer.find({
-            role,
+        const query = {
             isActive: true,
             bookedDates: { $ne: date }
-        });
+        };
+
+        if (role) query.role = role;
+
+        let photographers = await Photographer.find(query);
 
         res.json({ success: true, photographers });
 

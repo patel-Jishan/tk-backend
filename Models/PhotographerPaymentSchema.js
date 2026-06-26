@@ -42,6 +42,21 @@ const photographerPaymentSchema = new mongoose.Schema({
 
   totalDays: Number,
   perDayRate: Number,
+  workItems: [
+    {
+      bookingId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Booking"
+      },
+      bookingCode: String,
+      date: String,
+      serviceName: String,
+      amount: {
+        type: Number,
+        default: 0
+      }
+    }
+  ],
 
   totalAmount: {
     type: Number,

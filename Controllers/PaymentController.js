@@ -1,11 +1,7 @@
-// const Photographer = require("../Models/PhotographerSchema");
-// const PhotographerPayment = require("../Models/PhotographerPaymentSchema");
-// const { sendPaymentMail } = require("./MailController");
 const mongoose = require("mongoose");
-
-// ✅ CREATE / UPDATE PAYMENT
 const Photographer = require("../Models/PhotographerSchema");
 const PhotographerPayment = require("../Models/PhotographerPaymentSchema");
+const Booking = require("../Models/BookingSchema");
 const { sendPaymentMail } = require("./MailController");
 
 function getPreviousMonth(month) {
@@ -20,138 +16,57 @@ function getPreviousMonth(month) {
   return `${year}-${m.toString().padStart(2, "0")}`;
 }
 
-// async function UpdatePayment(req, res) {
-//   try {
-//     let {
-//       photographerId,
-//       month,
-//       perDayRate,
-//       amountPaid = 0,
-//       transactionId,
-//       paymentMethod,
-//       note,
-//       type = "advance"
-//     } = req.body;
+const getId = (value) => {
+  if (!value) return "";
+  if (value._id) return value._id.toString();
+  if (value.id) return value.id.toString();
+  return value.toString();
+};
 
-//     let photographer = await Photographer.findById(photographerId);
+async function calculatePhotographerWork(photographer, month) {
+  const photographerId = photographer._id.toString();
+  const bookings = await Booking.find({
+    "assigned.assignments.photographerId": photographer._id
+  }).populate("assigned.assignments.serviceId", "name");
 
-//     if (!photographer) {
-//       return res.json({ success: false, message: "Photographer not found" });
-//     }
+  const workItems = [];
+  const workDates = new Set();
 
-//     // 🔥 count working days
-//     let totalDays = photographer.bookedDates.filter(date =>
-//       date.startsWith(month)
-//     ).length;
+  for (const booking of bookings) {
+    for (const assign of booking.assigned || []) {
+      const event = (booking.events || []).find((item) => item.day === assign.day);
+      if (!event?.date || !String(event.date).startsWith(month)) continue;
 
-//     if (totalDays === 0) {
-//       return res.json({
-//         success: false,
-//         message: "No work in this month"
-//       });
-//     }
+      for (const assignment of assign.assignments || []) {
+        if (getId(assignment.photographerId) !== photographerId) continue;
 
-//     let totalAmount = totalDays * perDayRate;
+        const customAmount = Number(assignment.payAmount);
+        const amount = Number.isFinite(customAmount) && customAmount > 0
+          ? customAmount
+          : Number(photographer.perDayRate || 0);
+        workDates.add(event.date);
 
-//     let payment = await PhotographerPayment.findOne({
-//       photographerId,
-//       month
-//     });
+        workItems.push({
+          bookingId: booking._id,
+          bookingCode: booking.bookingId,
+          date: event.date,
+          serviceName: assignment.serviceId?.name || "Service",
+          amount
+        });
+      }
+    }
+  }
 
-//     // 🔥 GET PREVIOUS MONTH EXTRA
-//     let previousMonth = getPreviousMonth(month);
-
-//     let previousPayment = await PhotographerPayment.findOne({
-//       photographerId,
-//       month: previousMonth
-//     });
-
-//     let carryForward = previousPayment?.extraPaid || 0;
-
-//     // 🔥 CREATE NEW PAYMENT
-//     if (!payment) {
-//       payment = new PhotographerPayment({
-//         photographerId,
-//         month,
-//         totalDays,
-//         perDayRate,
-//         totalAmount,
-//         carryForward,
-//         advancePaid: carryForward,
-//         remainingAmount: totalAmount - carryForward,
-//         extraPaid: 0,
-//         transactions: []
-//       });
-//     }
-
-//     // 🔥 ADD TRANSACTION
-//     if (amountPaid > 0) {
-//       payment.transactions.push({
-//         amount: amountPaid,
-//         transactionId,
-//         paymentMethod,
-//         type
-//       });
-
-//       payment.advancePaid += amountPaid;
-//     }
-
-//     // 🔥 OVERPAY LOGIC
-//     if (payment.advancePaid > payment.totalAmount) {
-//       payment.extraPaid = payment.advancePaid - payment.totalAmount;
-//       payment.advancePaid = payment.totalAmount;
-//       payment.remainingAmount = 0;
-//     } else {
-//       payment.extraPaid = 0;
-//       payment.remainingAmount = payment.totalAmount - payment.advancePaid;
-//     }
-
-//     // 🔥 STATUS
-//     if (payment.advancePaid === 0) {
-//       payment.status = "pending";
-//     } else if (payment.remainingAmount > 0) {
-//       payment.status = "partial";
-//     } else {
-//       payment.status = "paid";
-//     }
-
-//     // 🔥 OVERDUE
-//     let today = new Date();
-//     let paymentMonthEnd = new Date(month + "-31");
-
-//     if (payment.status !== "paid" && today > paymentMonthEnd) {
-//       payment.status = "overdue";
-//     }
-
-//     payment.note = note;
-
-//     await payment.save();
-
-//     // 🔥 SEND MAIL
-//     if (amountPaid > 0) {
-//       let lastTransaction = payment.transactions[payment.transactions.length - 1];
-
-//       await sendPaymentMail({
-//         photographer,
-//         payment,
-//         lastTransaction
-//       });
-//     }
-
-//     res.json({
-//       success: true,
-//       message: "Payment updated",
-//       payment
-//     });
-
-//   } catch (error) {
-//     res.json({ success: false, message: error.message });
-//   }
-// }
+  return {
+    workItems,
+    totalAmount: workItems.reduce((sum, item) => sum + Number(item.amount || 0), 0),
+    totalDays: workDates.size
+  };
+}
 
 async function UpdatePayment(req, res) {
   try {
-    let {
+    const {
       photographerId,
       month,
       amountPaid = 0,
@@ -161,24 +76,19 @@ async function UpdatePayment(req, res) {
       type = "advance"
     } = req.body;
 
-    let photographer = await Photographer.findById(photographerId);
+    const photographer = await Photographer.findById(photographerId);
 
     if (!photographer) {
       return res.json({ success: false, message: "Photographer not found" });
     }
 
-    // 🔥 ALWAYS GET CURRENT RATE FROM PHOTOGRAPHER
-    let currentRate = photographer.perDayRate;
+    const currentRate = Number(photographer.perDayRate || 0);
+    const workSummary = await calculatePhotographerWork(photographer, month);
 
-    // 🔥 count working days
-    let totalDays = photographer.bookedDates.filter(date =>
-      date.startsWith(month)
-    ).length;
-
-    if (totalDays === 0) {
+    if (workSummary.totalDays === 0) {
       return res.json({
         success: false,
-        message: "No work in this month"
+        message: "No payable assignment found in this month"
       });
     }
 
@@ -187,46 +97,32 @@ async function UpdatePayment(req, res) {
       month
     });
 
-    // 🔥 ❌ RATE LOCK CHECK
-    if (payment && payment.perDayRate !== currentRate) {
-      return res.json({
-        success: false,
-        message: "Rate already locked for this month"
-      });
-    }
-
-    let totalAmount = totalDays * currentRate;
-
-    // 🔥 PREVIOUS MONTH
-    let previousMonth = getPreviousMonth(month);
-
-    let previousPayment = await PhotographerPayment.findOne({
+    const previousMonth = getPreviousMonth(month);
+    const previousPayment = await PhotographerPayment.findOne({
       photographerId,
       month: previousMonth
     });
+    const carryForward = previousPayment?.extraPaid || 0;
 
-    let carryForward = previousPayment?.extraPaid || 0;
-
-    // ✅ CREATE (ONLY TIME RATE SET HOGA)
     if (!payment) {
       payment = new PhotographerPayment({
         photographerId,
         month,
-        totalDays,
-        perDayRate: currentRate, // 🔥 LOCKED HERE
-        totalAmount,
+        transactions: [],
         carryForward,
         advancePaid: carryForward,
-        remainingAmount: totalAmount - carryForward,
-        extraPaid: 0,
-        transactions: []
+        extraPaid: 0
       });
     }
 
-    // 🔥 DUPLICATE TRANSACTION
+    payment.totalDays = workSummary.totalDays;
+    payment.perDayRate = currentRate;
+    payment.workItems = workSummary.workItems;
+    payment.totalAmount = workSummary.totalAmount;
+
     if (transactionId) {
-      let exists = payment.transactions.find(
-        t => t.transactionId === transactionId
+      const exists = payment.transactions.find(
+        (transaction) => transaction.transactionId === transactionId
       );
 
       if (exists) {
@@ -237,7 +133,6 @@ async function UpdatePayment(req, res) {
       }
     }
 
-    // 🔥 ADD PAYMENT
     if (amountPaid > 0) {
       payment.transactions.push({
         amount: amountPaid,
@@ -249,7 +144,6 @@ async function UpdatePayment(req, res) {
       payment.advancePaid += amountPaid;
     }
 
-    // 🔥 CALCULATION
     if (payment.advancePaid > payment.totalAmount) {
       payment.extraPaid = payment.advancePaid - payment.totalAmount;
       payment.advancePaid = payment.totalAmount;
@@ -259,7 +153,6 @@ async function UpdatePayment(req, res) {
       payment.remainingAmount = payment.totalAmount - payment.advancePaid;
     }
 
-    // 🔥 STATUS
     if (payment.advancePaid === 0) {
       payment.status = "pending";
     } else if (payment.remainingAmount > 0) {
@@ -268,10 +161,9 @@ async function UpdatePayment(req, res) {
       payment.status = "paid";
     }
 
-    // 🔥 OVERDUE FIX
-    let [year, m] = month.split("-").map(Number);
-    let lastDate = new Date(year, m, 0);
-    let today = new Date();
+    const [year, m] = month.split("-").map(Number);
+    const lastDate = new Date(year, m, 0);
+    const today = new Date();
 
     if (payment.status !== "paid" && today > lastDate) {
       payment.status = "overdue";
@@ -281,9 +173,8 @@ async function UpdatePayment(req, res) {
 
     await payment.save();
 
-    // 🔥 MAIL
     if (amountPaid > 0) {
-      let lastTransaction =
+      const lastTransaction =
         payment.transactions[payment.transactions.length - 1];
 
       await sendPaymentMail({
@@ -298,44 +189,39 @@ async function UpdatePayment(req, res) {
       message: "Payment updated",
       payment
     });
-
   } catch (error) {
     res.json({ success: false, message: error.message });
   }
 }
 
-// ✅ GET ALL PAYMENTS
 async function GetAllPayments(req, res) {
-    try {
-        let payments = await PhotographerPayment.find()
-            .populate("photographerId", "name email");
+  try {
+    const payments = await PhotographerPayment.find()
+      .populate("photographerId", "name email phone");
 
-        res.json({ success: true, payments });
-
-    } catch (error) {
-        res.json({ success: false, message: error.message });
-    }
+    res.json({ success: true, payments });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
 }
 
-// ✅ FILTER UNPAID
 async function GetUnpaidPhotographers(req, res) {
-    try {
-        let payments = await PhotographerPayment.find({
-            status: { $ne: "paid" }
-        }).populate("photographerId");
+  try {
+    const payments = await PhotographerPayment.find({
+      status: { $ne: "paid" }
+    }).populate("photographerId");
 
-        res.json({ success: true, payments });
-
-    } catch (error) {
-        res.json({ success: false, message: error.message });
-    }
+    res.json({ success: true, payments });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
 }
 
 async function GetPaymentByPhotographer(req, res) {
   try {
-    let { photographerId } = req.params;
+    const { photographerId } = req.params;
 
-    let payments = await PhotographerPayment.find({
+    const payments = await PhotographerPayment.find({
       photographerId: new mongoose.Types.ObjectId(photographerId)
     }).populate("photographerId", "name email phone");
 
@@ -350,23 +236,20 @@ async function GetPaymentByPhotographer(req, res) {
       success: true,
       payments
     });
-
   } catch (error) {
     res.json({ success: false, message: error.message });
   }
 }
 
-
 async function GetPaymentsByMonth(req, res) {
   try {
-    let { month } = req.params;
+    const { month } = req.params;
 
-    let payments = await PhotographerPayment.find({ month })
+    const payments = await PhotographerPayment.find({ month })
       .populate("photographerId", "name email phone");
 
     if (!payments.length) {
       return res.json({
-        
         success: false,
         message: "No payments found for this month"
       });
@@ -377,17 +260,15 @@ async function GetPaymentsByMonth(req, res) {
       count: payments.length,
       payments
     });
-
   } catch (error) {
     res.json({ success: false, message: error.message });
   }
 }
 
-
 module.exports = {
-    UpdatePayment,
-    GetAllPayments,
-    GetUnpaidPhotographers,
-    GetPaymentByPhotographer,
-    GetPaymentsByMonth
+  UpdatePayment,
+  GetAllPayments,
+  GetUnpaidPhotographers,
+  GetPaymentByPhotographer,
+  GetPaymentsByMonth
 };

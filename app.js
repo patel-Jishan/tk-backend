@@ -9,7 +9,8 @@ app.use(express.json());
 app.use(cors({
     origin: [
             "https://www.tkmomentscapture.com",
-            "https://tkmomentscapture.com"
+            "https://tkmomentscapture.com",
+            "http://localhost:5173"
     ],
     credentials:true,
 }))

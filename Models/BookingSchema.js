@@ -53,7 +53,8 @@ const eventSchema = new mongoose.Schema({
       },
       quantity: {
         type: Number,
-        default: 1
+        default: 1,
+        min: 1
       }
     }
   ]
@@ -82,6 +83,12 @@ const assignedSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "Service",
         required: true
+      },
+
+      payAmount: {
+        type: Number,
+        default: 0,
+        min: 0
       }
     }
   ]
@@ -106,7 +113,11 @@ const bookingSchema = new mongoose.Schema(
           type: mongoose.Schema.Types.ObjectId,
           ref: "Service"
         },
-        quantity: Number
+        quantity: {
+          type: Number,
+          default: 1,
+          min: 1
+        }
       }
     ],
 

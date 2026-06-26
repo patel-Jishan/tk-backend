@@ -1,123 +1,165 @@
 const Booking = require("../Models/BookingSchema");
 const Service = require("../Models/ServiceSchema");
 const Photographer = require("../Models/PhotographerSchema");
-const { sendPhotographerAssignMail, sendWorkStatusMail, sendPaymentMail, sendPaymentMailToCustomer } = require("./MailController");
+const { sendPhotographerAssignMail, sendWorkStatusMail, sendPaymentMailToCustomer } = require("./MailController");
 const Setting = require("../Models/SettingSchema");
 const { sendBookingMail } = require("./MailController");
 const sendWhatsApp = require("../Utils/sendWhatsApp");
 
+const getQuantity = (value) => {
+  const quantity = Number(value);
+  return Number.isFinite(quantity) && quantity >= 1 ? Math.floor(quantity) : 1;
+};
+
+const getModelId = (value) => {
+  if (!value) return "";
+  if (value._id) return value._id.toString();
+  if (value.id) return value.id.toString();
+  return value.toString();
+};
+
+function getServiceLineTotal(service, quantity) {
+  if (!service) return 0;
+  if (service.priceType === "per_day" || service.priceType === "per_unit") {
+    return service.price * quantity;
+  }
+  if (service.priceType === "fixed") return service.price;
+  return 0;
+}
+
+async function calculateEstimate(events = [], addons = []) {
+  let subtotal = 0;
+  const eventBreakdown = [];
+  const addonBreakdown = [];
+
+  for (let event of events || []) {
+    const serviceLines = [];
+
+    for (let item of event.services || []) {
+      const service = await Service.findById(item.serviceId);
+      if (!service) continue;
+
+      const quantity = getQuantity(item.quantity);
+      item.quantity = quantity;
+      const total = getServiceLineTotal(service, quantity);
+      subtotal += total;
+
+      serviceLines.push({
+        serviceId: service._id,
+        name: service.name,
+        priceType: service.priceType,
+        quantity,
+        rate: service.price,
+        total
+      });
+    }
+
+    eventBreakdown.push({
+      day: event.day,
+      date: event.date,
+      location: event.location,
+      services: serviceLines
+    });
+  }
+
+  for (let item of addons || []) {
+    const service = await Service.findById(item.serviceId);
+    if (!service) continue;
+
+    const quantity = getQuantity(item.quantity);
+    item.quantity = quantity;
+    const total = getServiceLineTotal(service, quantity);
+    subtotal += total;
+
+    addonBreakdown.push({
+      serviceId: service._id,
+      name: service.name,
+      priceType: service.priceType,
+      quantity,
+      rate: service.price,
+      total
+    });
+  }
+
+  let setting = await Setting.findOne();
+
+  if (!setting) {
+    setting = await Setting.create({
+      profitPercentage: 25
+    });
+  }
+
+  const profitPercentage = setting.profitPercentage;
+  const profitAmount = subtotal * (profitPercentage / 100);
+
+  return {
+    subtotal,
+    profitPercentage,
+    profitAmount,
+    estimate: subtotal + profitAmount,
+    breakdown: {
+      events: eventBreakdown,
+      addons: addonBreakdown
+    }
+  };
+}
 
 async function CreateBooking(req, res) {
-    try {
-        let { customer, events, addons, isConfirmed } = req.body;
+  try {
+    let { customer, events = [], addons = [], isConfirmed } = req.body;
+    const estimateData = await calculateEstimate(events, addons);
+    const type = isConfirmed ? "booking" : "enquiry";
 
-        let subtotal = 0;
+    const booking = await Booking.create({
+      bookingId: "BK" + Date.now(),
+      customer,
+      events,
+      addons,
+      subtotal: estimateData.subtotal,
+      profitPercentage: estimateData.profitPercentage,
+      profitAmount: estimateData.profitAmount,
+      estimate: estimateData.estimate,
+      payment: {
+        totalAmount: estimateData.estimate,
+        paidAmount: 0,
+        remainingAmount: estimateData.estimate,
+        status: "pending"
+      },
+      type
+    });
 
-// 🔥 Event Services
-for (let event of events) {
-  for (let item of event.services) {
-    let service = await Service.findById(item.serviceId);
+    if (type === "booking") {
+      const populatedBooking = await Booking.findById(booking._id)
+        .populate("events.services.serviceId", "name price priceType")
+        .populate("addons.serviceId", "name price priceType");
 
-    if (!service) continue;
-
-    if (service.priceType === "per_day") {
-      subtotal += service.price;
-    } else if (service.priceType === "per_unit") {
-      subtotal += service.price * item.quantity;
+      await sendBookingMail({
+        customer: populatedBooking.customer,
+        bookingId: populatedBooking.bookingId,
+        events: populatedBooking.events,
+        addons: populatedBooking.addons,
+        subtotal: estimateData.subtotal,
+        profitPercentage: estimateData.profitPercentage,
+        profitAmount: estimateData.profitAmount,
+        estimate: estimateData.estimate,
+        status: populatedBooking.status,
+        createdAt: populatedBooking.createdAt
+      });
     }
+
+    res.json({
+      success: true,
+      message: type === "booking" ? "Booking created" : "Enquiry saved",
+      booking
+    });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
   }
-}
-
-// 🔥 Addons
-if (addons?.length) {
-  for (let item of addons) {
-    let service = await Service.findById(item.serviceId);
-
-    if (!service) continue;
-
-    if (service.priceType === "fixed") {
-      subtotal += service.price;
-    } else if (service.priceType === "per_unit") {
-      subtotal += service.price * item.quantity;
-    }
-  }
-}
-
-// 🔥 Profit Setting
-let setting = await Setting.findOne();
-
-if (!setting) {
-  setting = await Setting.create({
-    profitPercentage: 25
-  });
-}
-
-const profitPercentage = setting.profitPercentage;
-const profitAmount = subtotal * (profitPercentage / 100);
-const finalEstimate = subtotal + profitAmount;
-// 🔥 TYPE SET
-let type = isConfirmed ? "booking" : "enquiry";
-
-        let booking = await Booking.create({
-  bookingId: "BK" + Date.now(),
-
-  customer,
-  events,
-  addons,
-
-  subtotal,
-  profitPercentage,
-  profitAmount,
-
-  estimate: finalEstimate,
-
-  payment: {
-    totalAmount: finalEstimate,
-    paidAmount: 0,
-    remainingAmount: finalEstimate,
-    status: "pending"
-  },
-
-  type
-});
-        
-        // 🔥 MAIL ONLY IF BOOKING CONFIRMED
-        if (type === "booking") {
-
-            let populatedBooking = await Booking.findById(booking._id)
-                .populate("events.services.serviceId", "name price priceType")
-                .populate("addons.serviceId", "name price priceType");
-
-          await sendBookingMail({
-  customer: populatedBooking.customer,
-  bookingId: populatedBooking.bookingId,
-  events: populatedBooking.events,
-  addons: populatedBooking.addons,
-
-  subtotal,
-  profitPercentage,
-  profitAmount,
-  estimate: finalEstimate,
-
-  status: populatedBooking.status,
-  createdAt: populatedBooking.createdAt
-});
-        }
-
-        res.json({
-            success: true,
-            message: type === "booking" ? "Booking created" : "Enquiry saved",
-            booking
-        });
-
-    } catch (error) {
-        res.json({ success: false, message: error.message });
-    }
 }
 
 async function GetAllBookings(req, res) {
   try {
-    let bookings = await Booking.find()
+    const bookings = await Booking.find()
       .populate("events.services.serviceId")
       .populate("addons.serviceId")
       .populate("assigned.assignments.photographerId")
@@ -127,7 +169,6 @@ async function GetAllBookings(req, res) {
       success: true,
       bookings
     });
-
   } catch (error) {
     res.json({
       success: false,
@@ -136,146 +177,168 @@ async function GetAllBookings(req, res) {
   }
 }
 
+function getPreviousAssignedDates(booking) {
+  const previousAssignedDates = new Map();
+
+  for (const assign of booking.assigned || []) {
+    const event = booking.events.find((item) => item.day === assign.day);
+    if (!event) continue;
+
+    for (const item of assign.assignments || []) {
+      const photographerId = getModelId(item.photographerId);
+      if (!previousAssignedDates.has(photographerId)) {
+        previousAssignedDates.set(photographerId, new Set());
+      }
+      previousAssignedDates.get(photographerId).add(event.date);
+    }
+  }
+
+  return previousAssignedDates;
+}
+
+function validateAssignmentsAgainstQuantity(booking, assigned = []) {
+  const assignmentCounts = {};
+
+  for (const assign of assigned || []) {
+    const event = booking.events.find((item) => item.day === assign.day);
+    if (!event) {
+      return `Event day ${assign.day} was not found for this booking`;
+    }
+
+    const serviceQuantityMap = {};
+    const serviceNameMap = {};
+    for (const item of event.services || []) {
+      const serviceId = getModelId(item.serviceId);
+      serviceQuantityMap[serviceId] = getQuantity(item.quantity);
+      serviceNameMap[serviceId] = item.serviceId?.name || "Service";
+    }
+
+    const photographerIds = new Set();
+    for (const item of assign.assignments || []) {
+      const serviceId = getModelId(item.serviceId);
+      const photographerId = getModelId(item.photographerId);
+
+      if (!serviceQuantityMap[serviceId]) {
+        return "Assigned service does not exist in this event";
+      }
+
+      if (photographerIds.has(photographerId)) {
+        return "A photographer can be assigned only once per event day";
+      }
+      photographerIds.add(photographerId);
+
+      const key = `${assign.day}:${serviceId}`;
+      assignmentCounts[key] = (assignmentCounts[key] || 0) + 1;
+      if (assignmentCounts[key] > serviceQuantityMap[serviceId]) {
+        return `${serviceNameMap[serviceId]} requires ${serviceQuantityMap[serviceId]} photographer(s). You cannot assign more than required.`;
+      }
+    }
+  }
+
+  return "";
+}
+
+function normalizeAssignmentPay(item, photographer) {
+  const payAmount = Number(item.payAmount);
+  const fallbackAmount = Number(photographer?.perDayRate || 0);
+  return Number.isFinite(payAmount) && payAmount >= 0
+    ? payAmount
+    : fallbackAmount;
+}
 
 async function AssignPhotographer(req, res) {
   try {
-    let { id } = req.params;
-    let { assigned } = req.body;
+    const { id } = req.params;
+    const { assigned = [] } = req.body;
 
-    let booking = await Booking.findById(id)
-      .populate("events.services.serviceId"); // 👈 important for mail
+    const booking = await Booking.findById(id)
+      .populate("events.services.serviceId");
 
     if (!booking) {
       return res.json({ success: false, message: "Booking not found" });
     }
 
-    // 🔥 store photographer-wise events
-    let photographerEventMap = {};
-
- for (let assign of assigned) {
-
-  let event = booking.events.find(
-    e => e.day === assign.day
-  );
-
-  if (!event) continue;
-
-  for (let item of assign.assignments) {
-
-    const photographer =
-      await Photographer.findById(
-        item.photographerId
-      );
-
-    if (!photographer) {
-      return res.json({
-        success: false,
-        message: "Photographer not found"
-      });
+    const validationMessage = validateAssignmentsAgainstQuantity(booking, assigned);
+    if (validationMessage) {
+      return res.json({ success: false, message: validationMessage });
     }
 
-    // ❌ already booked check
-    if (
-      photographer.bookedDates.includes(
-        event.date
-      )
-    ) {
-      return res.json({
-        success: false,
-        message: `${photographer.name} already booked on ${event.date}`
-      });
+    const previousAssignedDates = getPreviousAssignedDates(booking);
+    const photographerEventMap = {};
+
+    for (const assign of assigned) {
+      const event = booking.events.find((item) => item.day === assign.day);
+      if (!event) continue;
+
+      for (const item of assign.assignments || []) {
+        const photographer = await Photographer.findById(item.photographerId);
+
+        if (!photographer) {
+          return res.json({
+            success: false,
+            message: "Photographer not found"
+          });
+        }
+
+        const photographerId = photographer._id.toString();
+        const wasAlreadyAssignedToThisBooking =
+          previousAssignedDates.get(photographerId)?.has(event.date);
+
+        if (photographer.bookedDates.includes(event.date) && !wasAlreadyAssignedToThisBooking) {
+          return res.json({
+            success: false,
+            message: `${photographer.name} already booked on ${event.date}`
+          });
+        }
+
+        if (!photographer.bookedDates.includes(event.date)) {
+          photographer.bookedDates.push(event.date);
+          await photographer.save();
+        }
+
+        const service = await Service.findById(item.serviceId);
+        item.payAmount = normalizeAssignmentPay(item, photographer);
+
+        if (!photographerEventMap[photographerId]) {
+          photographerEventMap[photographerId] = {
+            photographer,
+            events: [],
+            services: []
+          };
+        }
+
+        const alreadyAddedEvent = photographerEventMap[photographerId].events.some(
+          (entry) => entry.day === event.day && entry.date === event.date
+        );
+
+        if (!alreadyAddedEvent) {
+          photographerEventMap[photographerId].events.push(event);
+        }
+
+        if (service) {
+          photographerEventMap[photographerId].services.push(service.name);
+        }
+      }
     }
 
-    // ✅ add booked date
-    if (
-      !photographer.bookedDates.includes(
-        event.date
-      )
-    ) {
-      photographer.bookedDates.push(
-        event.date
-      );
-
-      await photographer.save();
-    }
-
-    const service =
-      await Service.findById(
-        item.serviceId
-      );
-
-    // 🔥 collect data per photographer
-    if (
-      !photographerEventMap[
-        item.photographerId
-      ]
-    ) {
-      photographerEventMap[
-        item.photographerId
-      ] = {
-        photographer,
-        events: [],
-        services: []
-      };
-    }
-
-    // event duplicate avoid
-    const alreadyAddedEvent =
-      photographerEventMap[
-        item.photographerId
-      ].events.some(
-        e =>
-          e.day === event.day &&
-          e.date === event.date
-      );
-
-    if (!alreadyAddedEvent) {
-      photographerEventMap[
-        item.photographerId
-      ].events.push(event);
-    }
-
-    // service collect
-    if (service) {
-      photographerEventMap[
-        item.photographerId
-      ].services.push(service.name);
-    }
-  }
-}
-    // ✅ save assignment
     booking.assigned = assigned;
     await booking.save();
 
-    // 🔥 SEND MAIL (1 per photographer)
-    // for (let key in photographerEventMap) {
-    //   let data = photographerEventMap[key];
+    for (const key in photographerEventMap) {
+      const data = photographerEventMap[key];
 
-    //   await sendPhotographerAssignMail({
-    //     photographer: data.photographer,
-    //     booking,
-    //     events: data.events
-    //   });
-    // }
-    for (let key in photographerEventMap) {
+      await sendPhotographerAssignMail({
+        photographer: data.photographer,
+        booking,
+        events: data.events,
+        services: [...new Set(data.services)]
+      });
 
-  let data = photographerEventMap[key];
+      const eventList = data.events
+        .map((event) => `${event.date}\n${event.location}`)
+        .join("\n\n");
 
-  await sendPhotographerAssignMail({
-  photographer: data.photographer,
-  booking,
-  events: data.events,
-  services: [...new Set(data.services)]
-});
-
-  const eventList = data.events
-    .map(
-      e =>
-        `📅 ${e.date}\n📍 ${e.location}`
-    )
-    .join("\n\n");
-
-  const message = `Hello ${data.photographer.name},
+      const message = `Hello ${data.photographer.name},
 
 You have been assigned for a new booking.
 
@@ -287,92 +350,40 @@ Please contact admin for further details.
 
 TK Moments Capture`;
 
-  await sendWhatsApp(
-    data.photographer.phone,
-    message
-  );
-}
-
+      await sendWhatsApp(
+        data.photographer.phone,
+        message
+      );
+    }
 
     res.json({
       success: true,
       message: "Photographer assigned & mails sent",
       booking
     });
-
   } catch (error) {
     res.json({ success: false, message: error.message });
   }
 }
 
 async function GetEstimate(req, res) {
-    try {
-        let { events, addons } = req.body;
-        let subtotal = 0;
+  try {
+    const { events = [], addons = [] } = req.body;
 
-// Events
-for (let event of events) {
-  for (let item of event.services) {
-    let service = await Service.findById(item.serviceId);
-
-    if (!service) continue;
-
-    if (service.priceType === "per_day") {
-      subtotal += service.price;
-    } else if (service.priceType === "per_unit") {
-      subtotal += service.price * item.quantity;
-    }
+    res.json({
+      success: true,
+      ...(await calculateEstimate(events, addons))
+    });
+  } catch (error) {
+    res.json({
+      success: false,
+      message: error.message
+    });
   }
 }
-
-// Addons
-if (addons?.length) {
-  for (let item of addons) {
-    let service = await Service.findById(item.serviceId);
-
-    if (!service) continue;
-
-    if (service.priceType === "fixed") {
-      subtotal += service.price;
-    } else if (service.priceType === "per_unit") {
-      subtotal += service.price * item.quantity;
-    }
-  }
-}
-
-// Profit
-let setting = await Setting.findOne();
-
-if (!setting) {
-  setting = await Setting.create({
-    profitPercentage: 25
-  });
-}
-
-const profitPercentage = setting.profitPercentage;
-const profitAmount = subtotal * (profitPercentage / 100);
-const finalEstimate = subtotal + profitAmount;
-
-res.json({
-  success: true,
-  subtotal,
-  profitPercentage,
-  profitAmount,
-  estimate: finalEstimate
-});
-
-    } catch (error) {
-        res.json({
-            success: false,
-            message: error.message
-        });
-    }
-}
-
 
 async function UpdateBookingPrice(req, res) {
   try {
-
     const { id } = req.params;
     const { discountPercentage } = req.body;
 
@@ -385,42 +396,24 @@ async function UpdateBookingPrice(req, res) {
       });
     }
 
-    // ❌ Confirmed booking lock
     if (booking.status === "confirmed") {
       return res.json({
         success: false,
-        message:
-          "Price cannot be changed after confirmation"
+        message: "Price cannot be changed after confirmation"
       });
     }
 
     const subtotal = booking.subtotal;
-
     const profitAmount = booking.profitAmount;
-
     const estimate = subtotal + profitAmount;
+    const discountAmount = estimate * (discountPercentage / 100);
+    const finalAmount = estimate - discountAmount;
 
-    const discountAmount =
-      estimate * (discountPercentage / 100);
-
-    const finalAmount =
-      estimate - discountAmount;
-
-    booking.discountPercentage =
-      discountPercentage;
-
-    booking.discountAmount =
-      discountAmount;
-
-    booking.finalAmount =
-      finalAmount;
-
-    booking.payment.totalAmount =
-      finalAmount;
-
-    booking.payment.remainingAmount =
-      finalAmount -
-      booking.payment.paidAmount;
+    booking.discountPercentage = discountPercentage;
+    booking.discountAmount = discountAmount;
+    booking.finalAmount = finalAmount;
+    booking.payment.totalAmount = finalAmount;
+    booking.payment.remainingAmount = finalAmount - booking.payment.paidAmount;
 
     await booking.save();
 
@@ -429,7 +422,6 @@ async function UpdateBookingPrice(req, res) {
       message: "Price updated",
       booking
     });
-
   } catch (error) {
     res.json({
       success: false,
@@ -439,100 +431,89 @@ async function UpdateBookingPrice(req, res) {
 }
 
 async function UpdateWorkStatus(req, res) {
-    try {
-        let { id } = req.params;
-        let { workStatus } = req.body;
+  try {
+    const { id } = req.params;
+    const { workStatus } = req.body;
 
-        let booking = await Booking.findById(id);
+    const booking = await Booking.findById(id);
 
-        if (!booking) {
-            return res.json({ success: false, message: "Booking not found" });
-        }
-
-        booking.workStatus = workStatus;
-        await booking.save();
-
-        // 🔥 MAIL SEND
-        await sendWorkStatusMail({
-            customer: booking.customer,
-            bookingId: booking.bookingId,
-            workStatus
-        });
-
-        res.json({
-            success: true,
-            message: "Work status updated",
-            booking
-        });
-
-    } catch (error) {
-        res.json({ success: false, message: error.message });
+    if (!booking) {
+      return res.json({ success: false, message: "Booking not found" });
     }
+
+    booking.workStatus = workStatus;
+    await booking.save();
+
+    await sendWorkStatusMail({
+      customer: booking.customer,
+      bookingId: booking.bookingId,
+      workStatus
+    });
+
+    res.json({
+      success: true,
+      message: "Work status updated",
+      booking
+    });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
 }
-
-
 
 async function UpdateClientPayment(req, res) {
-    try {
-        let { id } = req.params;
-        let { amount, transactionId, paymentMethod, note } = req.body;
+  try {
+    const { id } = req.params;
+    const { amount, transactionId, paymentMethod, note } = req.body;
 
-        let booking = await Booking.findById(id);
+    const booking = await Booking.findById(id);
 
-        if (!booking) {
-            return res.json({ success: false, message: "Booking not found" });
-        }
-
-        // 🔥 ADD PAYMENT
-        booking.payment.paidAmount += amount;
-        booking.payment.remainingAmount =
-            booking.payment.totalAmount - booking.payment.paidAmount;
-
-        // 🔥 STATUS LOGIC
-        if (booking.payment.paidAmount === 0) {
-            booking.payment.status = "pending";
-        } else if (booking.payment.remainingAmount > 0) {
-            booking.payment.status = "partial";
-        } else {
-            booking.payment.status = "completed";
-        }
-
-        // 🔥 HISTORY
-        booking.payment.history.push({
-            amount,
-            transactionId,
-            paymentMethod,
-            note
-        });
-
-        await booking.save();
-
-        // 🔥 MAIL SEND
-        let lastTransaction =
-            booking.payment.history[booking.payment.history.length - 1];
-
-        await sendPaymentMailToCustomer({
-            customer: booking.customer,
-            booking,
-            transaction: lastTransaction
-        });
-
-        res.json({
-            success: true,
-            message: "Payment updated",
-            booking
-        });
-
-    } catch (error) {
-        res.json({ success: false, message: error.message });
+    if (!booking) {
+      return res.json({ success: false, message: "Booking not found" });
     }
-}
 
+    booking.payment.paidAmount += amount;
+    booking.payment.remainingAmount =
+      booking.payment.totalAmount - booking.payment.paidAmount;
+
+    if (booking.payment.paidAmount === 0) {
+      booking.payment.status = "pending";
+    } else if (booking.payment.remainingAmount > 0) {
+      booking.payment.status = "partial";
+    } else {
+      booking.payment.status = "completed";
+    }
+
+    booking.payment.history.push({
+      amount,
+      transactionId,
+      paymentMethod,
+      note
+    });
+
+    await booking.save();
+
+    const lastTransaction =
+      booking.payment.history[booking.payment.history.length - 1];
+
+    await sendPaymentMailToCustomer({
+      customer: booking.customer,
+      booking,
+      transaction: lastTransaction
+    });
+
+    res.json({
+      success: true,
+      message: "Payment updated",
+      booking
+    });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
+}
 
 async function UpdateDataHandover(req, res) {
   try {
     const { id } = req.params;
-
     const {
       photographerId,
       driveId,
@@ -559,12 +540,9 @@ async function UpdateDataHandover(req, res) {
       });
     });
 
-    let photographerEntry =
-      booking.dataHandover.find(
-        item =>
-          item.photographerId.toString() ===
-          photographerId
-      );
+    const photographerEntry = booking.dataHandover.find(
+      (item) => item.photographerId.toString() === photographerId
+    );
 
     const handoverPayload = {
       driveType,
@@ -587,9 +565,7 @@ async function UpdateDataHandover(req, res) {
           handedOverDate: new Date()
         });
       }
-
     } else {
-
       booking.dataHandover.push({
         photographerId,
         drives: [
@@ -608,7 +584,6 @@ async function UpdateDataHandover(req, res) {
       message: "Data handover saved",
       booking
     });
-
   } catch (error) {
     res.json({
       success: false,
@@ -618,13 +593,12 @@ async function UpdateDataHandover(req, res) {
 }
 
 module.exports = {
-    CreateBooking,
-    GetAllBookings,
-    AssignPhotographer,
-    GetEstimate,
-    UpdateWorkStatus,
-    UpdateClientPayment,
-    UpdateDataHandover,
-    UpdateBookingPrice,
-    
+  CreateBooking,
+  GetAllBookings,
+  AssignPhotographer,
+  GetEstimate,
+  UpdateWorkStatus,
+  UpdateClientPayment,
+  UpdateDataHandover,
+  UpdateBookingPrice
 };
