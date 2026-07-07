@@ -264,6 +264,8 @@ async function AssignPhotographer(req, res) {
     }
 
     const previousAssignedDates = getPreviousAssignedDates(booking);
+    const nextAssignedDates = new Map();
+    const photographersToUpdate = new Map();
     const photographerEventMap = {};
 
     for (const assign of assigned) {
@@ -281,6 +283,7 @@ async function AssignPhotographer(req, res) {
         }
 
         const photographerId = photographer._id.toString();
+        photographersToUpdate.set(photographerId, photographer);
         const wasAlreadyAssignedToThisBooking =
           previousAssignedDates.get(photographerId)?.has(event.date);
 
@@ -291,10 +294,10 @@ async function AssignPhotographer(req, res) {
           });
         }
 
-        if (!photographer.bookedDates.includes(event.date)) {
-          photographer.bookedDates.push(event.date);
-          await photographer.save();
+        if (!nextAssignedDates.has(photographerId)) {
+          nextAssignedDates.set(photographerId, new Set());
         }
+        nextAssignedDates.get(photographerId).add(event.date);
 
         const service = await Service.findById(item.serviceId);
         item.payAmount = normalizeAssignmentPay(item, photographer);
@@ -319,6 +322,31 @@ async function AssignPhotographer(req, res) {
           photographerEventMap[photographerId].services.push(service.name);
         }
       }
+    }
+
+    for (const [photographerId, dates] of previousAssignedDates.entries()) {
+      const photographer = photographersToUpdate.get(photographerId) || await Photographer.findById(photographerId);
+      if (!photographer) continue;
+
+      photographer.bookedDates = (photographer.bookedDates || []).filter((date) => (
+        !dates.has(date) || nextAssignedDates.get(photographerId)?.has(date)
+      ));
+      photographersToUpdate.set(photographerId, photographer);
+    }
+
+    for (const [photographerId, dates] of nextAssignedDates.entries()) {
+      const photographer = photographersToUpdate.get(photographerId);
+      if (!photographer) continue;
+
+      for (const date of dates) {
+        if (!photographer.bookedDates.includes(date)) {
+          photographer.bookedDates.push(date);
+        }
+      }
+    }
+
+    for (const photographer of photographersToUpdate.values()) {
+      await photographer.save();
     }
 
     booking.assigned = assigned;

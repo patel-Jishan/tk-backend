@@ -236,6 +236,13 @@ async function GetAvailablePhotographers(req, res) {
     try {
         let { date, role } = req.query;
 
+        if (!date) {
+            return res.json({
+                success: false,
+                message: "Date is required"
+            });
+        }
+
         const query = {
             isActive: true,
             bookedDates: { $ne: date }
@@ -243,7 +250,7 @@ async function GetAvailablePhotographers(req, res) {
 
         if (role) query.role = role;
 
-        let photographers = await Photographer.find(query);
+        let photographers = await Photographer.find(query).sort({ role: 1, name: 1 });
 
         res.json({ success: true, photographers });
 
