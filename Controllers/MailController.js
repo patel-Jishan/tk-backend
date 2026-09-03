@@ -21,8 +21,8 @@ function buildEventRows(events, showServices = true) {
       ? (e.services || []).map(s => {
         const svc = s.serviceId;          // populated object
         const name = svc?.name || "Service";
-        const qty = s.quantity > 1 ? ` ×${s.quantity}` : "";
-        return `<span style="display:inline-block;background:#f5ede0;border:0.5px solid #d4b88a;border-radius:20px;padding:2px 10px;font-size:11px;color:#6b4c2e;margin:2px 2px 2px 0">${name}${qty}</span>`;
+        const qty = Math.max(1, Number(s.quantity) || 1);
+        return `<span style="display:inline-block;background:#f5ede0;border:0.5px solid #d4b88a;border-radius:20px;padding:2px 10px;font-size:11px;color:#6b4c2e;margin:2px 2px 2px 0">${name} (Qty: ${qty})</span>`;
       }).join("") || "—"
       : null;
 
@@ -332,7 +332,7 @@ line-height:20px;
 color:#3b2a1a;
 font-family:Arial,sans-serif;
 ">
-${service.serviceId?.name || "Service"}
+${service.serviceId?.name || "Service"} (Qty: ${Math.max(1, Number(service.quantity) || 1)})
 </span>
 
 `).join("")}
@@ -581,7 +581,7 @@ line-height:20px;
 color:#3b2a1a;
 font-family:Arial,sans-serif;
 ">
-${service.serviceId?.name || "Service"}
+${service.serviceId?.name || "Service"} (Qty: ${Math.max(1, Number(service.quantity) || 1)})
 </span>
 
 `).join("")}
@@ -683,7 +683,7 @@ async function sendPhotographerAssignMail({ photographer, booking, events, servi
             <strong>📸 Services:</strong><br/>
             ${(event.services || []).map(s => `
               <span style="display:inline-block;background:#ede2cf;border:1px solid #d4c4a0;border-radius:20px;padding:6px 12px;margin:3px;font-size:12px;">
-                ${s.serviceId?.name || "Service"}
+                ${s.serviceId?.name || "Service"} (Qty: ${Math.max(1, Number(s.quantity) || 1)})
               </span>
             `).join("")}
           </td>
@@ -709,6 +709,23 @@ async function sendPhotographerAssignMail({ photographer, booking, events, servi
           <h3>Hello ${photographer.name},</h3>
 
           <p>You have been assigned to a new booking.</p>
+
+          <div style="margin:24px 0;padding:18px;border:1px solid #f0c36d;border-radius:10px;background:#fffaf0;color:#2d2418;">
+            <h3 style="margin:0 0 12px;color:#7a4b00;">PHOTOGRAPHER TEAM – TERMS &amp; CONDITIONS</h3>
+            <ol style="margin:0;padding-left:20px;font-size:14px;line-height:1.65;">
+              <li><strong>Timing:</strong> सभी photographers को shoot/event के समय से कम से कम 30 मिनट पहले पहुँचना अनिवार्य है।</li>
+              <li><strong>Attendance:</strong> बिना बताए छुट्टी करना, बार-बार late आना या event के बीच में बिना permission चले जाना सख्त मना है।</li>
+              <li><strong>Dress Code:</strong> सभी members को साफ-सुथरे और professional कपड़ों में आना अनिवार्य है। गलत dress-up पर warning दी जा सकती है।</li>
+              <li><strong>Work Quality:</strong> Proper camera settings, focus, exposure और अच्छी quality की photography करना अनिवार्य है।</li>
+              <li><strong>Responsibility:</strong> दिया गया काम पूरा करना आपकी जिम्मेदारी है। Important moments miss होने पर जवाबदेही होगी।</li>
+              <li><strong>Behaviour:</strong> Client, Bride, Groom और team के साथ respectful और professional behaviour रखें। छेड़छाड़, चुटकी काटना, unwanted physical contact या बदतमीजी सख्त मना है।</li>
+              <li><strong>Mobile:</strong> Duty के दौरान personal mobile का अनावश्यक इस्तेमाल नहीं किया जाएगा।</li>
+              <li><strong>Equipment:</strong> दिए गए camera, lens और अन्य equipment की जिम्मेदारी संबंधित photographer की होगी।</li>
+              <li><strong>Client &amp; Data:</strong> Client से बिना permission direct deal करना या photos/videos को बिना अनुमति share/post करना मना है।</li>
+              <li><strong>Discipline:</strong> बार-बार उल्लंघन पर warning, future assignments से removal या team से termination किया जा सकता है।</li>
+            </ol>
+            <p style="margin:14px 0 0;font-size:13px;"><strong>Acknowledgement:</strong> इस assignment को स्वीकार करके आप इन Terms &amp; Conditions को स्वीकार करते हैं।</p>
+          </div>
 
 
  <h4>👤 Client Details</h4>
