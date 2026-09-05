@@ -288,17 +288,6 @@ async function DeleteBooking(req, res) {
       });
     }
 
-    // ❌ only enquiry or cancelled booking allowed
-    if (
-      booking.type !== "enquiry" &&
-      booking.status !== "cancelled"
-    ) {
-      return res.json({
-        success: false,
-        message: "Only enquiry or cancelled bookings can be deleted"
-      });
-    }
-
     // 🔥 remove assigned dates from photographers
     if (booking.assigned?.length) {
       for (const assign of booking.assigned) {
